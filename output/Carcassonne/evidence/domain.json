@@ -1,0 +1,817 @@
+{
+  "model": "domain",
+  "repo_name": "Carcassonne",
+  "repo_sha": "ca2797745a863243fa6ce96af63435b0d67bf2ab",
+  "analyst_status": "ok",
+  "generated_by": "02-domain-analyst",
+  "scope_note": "Domain model of the Carcassonne game engine (src/Types/, src/Helpers/GameLogic.elm, src/Helpers/TileMapper.elm, tests/) plus rule context from the lobby/backend flow (src/Backend.elm, src/Helpers/FrontendHelpers.elm, readme.md).",
+  "elements": [
+    {
+      "id": "DM-T1",
+      "kind": "term",
+      "name": "Tile",
+      "description": "A square map piece with four sides (north/east/south/west), each carrying a SideId and a Feature, plus an optional central cloister (Maybe SideId); a tile also carries its TileId (tileset design, used for rendering) and a rotation in degrees.",
+      "code_ref": ["src/Types/Tile.elm:21-29", "readme.md:97-103"],
+      "unverified": null,
+      "detail": { "definition": "A square map piece: four sides each with a SideId and a Feature, an optional central cloister, a TileId for tileset lookup/rendering, and a rotation value." }
+    },
+    {
+      "id": "DM-T2",
+      "kind": "term",
+      "name": "Tileset",
+      "description": "The canonical collection of 24 tile designs (TileId 0-23) whose copy counts define the 72-tile game set: 71 tiles in the draw stack plus the single starting tile (Tile 0, city center with road).",
+      "code_ref": ["src/Helpers/TileMapper.elm:9-253", "src/Types/Game.elm:102-104", "src/Types/Game.elm:120-147"],
+      "unverified": null,
+      "detail": { "definition": "Hand-written tile definitions keyed by TileId (0-23); initializeDrawStack lists 71 copies of these designs and the grid starts with Tile 0 at (0,0)." }
+    },
+    {
+      "id": "DM-T3",
+      "kind": "term",
+      "name": "Feature",
+      "description": "The terrain kind on a tile side: City, Road, Field, or NoFeature. Sides of the same Feature are considered the same connected feature when their SideIds are equal.",
+      "code_ref": ["src/Types/Feature.elm:4-8", "src/Helpers/TileMapper.elm:12-20"],
+      "unverified": null,
+      "detail": { "definition": "Closed Elm enum with four constructors (City, Road, Field, NoFeature); compared by equality when matching sides and computing scores." }
+    },
+    {
+      "id": "DM-T4",
+      "kind": "term",
+      "name": "SideId",
+      "description": "A unique integer identifying one feature instance on the board; equal SideIds on touching tile sides mean the features are connected (merged into one). -1 marks a field side, which has no identity. SideIds are allocated sequentially from nextSideId when a tile is placed.",
+      "code_ref": ["src/Types/Tile.elm:11-12", "src/Types/Tile.elm:62-81", "src/Helpers/GameLogic.elm:102-131", "readme.md:101"],
+      "unverified": null,
+      "detail": { "definition": "type alias SideId = Int; the join key of the feature graph, replaced across the whole grid on placement to merge adjacent features." }
+    },
+    {
+      "id": "DM-T5",
+      "kind": "term",
+      "name": "Meeple",
+      "description": "A player figure claiming a feature: recorded with its owner (PlayerIndex), the board coordinate it sits on, and a placement position (North/East/South/West/Center); its claim is keyed by the SideId of the feature it occupies.",
+      "code_ref": ["src/Types/Meeple.elm:17-23", "readme.md:105-112"],
+      "unverified": null,
+      "detail": { "definition": "Record { owner, coordinates, position } stored under the claimed feature's SideId in Game.meeples." }
+    },
+    {
+      "id": "DM-T6",
+      "kind": "term",
+      "name": "Player",
+      "description": "Identified only by a string name; seat order in the Game.players array (PlayerIndex) determines turn order and meeple color (red/blue/green/yellow/black for seats 0-4).",
+      "code_ref": ["readme.md:89-91", "src/Types/Game.elm:31", "src/Types/Meeple.elm:26-34"],
+      "unverified": null,
+      "detail": { "definition": "A name string plus its seat index; score and remaining meeple count live in the Game record keyed by name." }
+    },
+    {
+      "id": "DM-T7",
+      "kind": "term",
+      "name": "Game",
+      "description": "One live game instance: the tile grid, all placed meeples, per-player scores and meeple counts, the current player, the tile to be placed, the turn phase, the last placed tile, the next SideId, and the draw stack.",
+      "code_ref": ["src/Types/Game.elm:28-40"],
+      "unverified": null,
+      "detail": { "definition": "The central record that every game action returns a new copy of." }
+    },
+    {
+      "id": "DM-T8",
+      "kind": "term",
+      "name": "TileGrid",
+      "description": "The board itself: a mapping from board coordinate to placed tile; the first (starting) tile occupies (0, 0).",
+      "code_ref": ["src/Types/Game.elm:20-21", "src/Types/Game.elm:102-104"],
+      "unverified": null,
+      "detail": { "definition": "type alias TileGrid = Dict Coordinate Tile." }
+    },
+    {
+      "id": "DM-T9",
+      "kind": "term",
+      "name": "Coordinate",
+      "description": "A board cell as an (x, y) integer pair; the starting tile is at (0, 0).",
+      "code_ref": ["src/Types/Coordinate.elm:4-5", "src/Types/Game.elm:104"],
+      "unverified": null,
+      "detail": { "definition": "type alias Coordinate = (Int, Int)." }
+    },
+    {
+      "id": "DM-T10",
+      "kind": "term",
+      "name": "Draw stack",
+      "description": "The list of tiles not yet placed (List TileId), shuffled at game start and after every turn; the first tile that can be placed in some rotation becomes the current player's tileToPlace.",
+      "code_ref": ["src/Types/Game.elm:37", "src/Types/Game.elm:120-147", "src/Backend.elm:140-148", "src/Backend.elm:170-178"],
+      "unverified": null,
+      "detail": { "definition": "71 TileIds (24 designs); reshuffled by Random.List.shuffle before each deal." }
+    },
+    {
+      "id": "DM-T11",
+      "kind": "term",
+      "name": "Turn",
+      "description": "One player's complete action sequence: place the drawn tile, then optionally place a meeple on it (or skip), after which the turn passes to the next player in seat order, wrapping around.",
+      "code_ref": ["readme.md:56-62", "src/Helpers/GameLogic.elm:367", "src/Helpers/GameLogic.elm:502-508", "src/Types/Game.elm:78-84"],
+      "unverified": null,
+      "detail": { "definition": "Modeled by the two-phase GameState machine (PlaceTileState -> PlaceMeepleState -> next player's PlaceTileState)." }
+    },
+    {
+      "id": "DM-T12",
+      "kind": "term",
+      "name": "GameState (turn phase)",
+      "description": "The three phases of the turn machine: PlaceTileState (current player must place the drawn tile), PlaceMeepleState (they may place a meeple on the just placed tile), FinishedState (no playable tile remains; final scoring has run).",
+      "code_ref": ["src/Types/GameState.elm:4-7", "readme.md:113-117"],
+      "unverified": null,
+      "detail": { "definition": "Closed Elm enum PlaceTileState | PlaceMeepleState | FinishedState." }
+    },
+    {
+      "id": "DM-T13",
+      "kind": "term",
+      "name": "Last placed tile",
+      "description": "The tile the current player just placed (its cell tracked as lastPlacedTile); it anchors meeple placement, SideId merging, and cloister-completion checks.",
+      "code_ref": ["src/Types/Game.elm:35", "src/Types/Game.elm:89-94"],
+      "unverified": null,
+      "detail": { "definition": "Game.lastPlacedTile : Coordinate; retrieved via getLastPlacedTile." }
+    },
+    {
+      "id": "DM-T14",
+      "kind": "term",
+      "name": "Cloister",
+      "description": "An optional center feature of a tile, stored as Maybe SideId; a completed cloister (all 8 surrounding cells filled) is worth 9 points, at game end it is worth 1 per adjacent tile plus 1 for itself.",
+      "code_ref": ["src/Types/Tile.elm:28", "src/Types/Tile.elm:52-57", "src/Helpers/GameLogic.elm:211-251"],
+      "unverified": null,
+      "detail": { "definition": "The only feature that scores by area (adjacency) rather than by connected SideId." }
+    },
+    {
+      "id": "DM-T15",
+      "kind": "term",
+      "name": "Finished feature",
+      "description": "A feature whose every open side is bordered by an already placed tile; only finished features score during play (when the placing of a tile or meeple completes them).",
+      "code_ref": ["src/Helpers/GameLogic.elm:193-203", "src/Helpers/GameLogic.elm:418-422"],
+      "unverified": null,
+      "detail": { "definition": "Detected by isFeatureFinished: for every tile side with the SideId, the neighbor cell in that direction must already contain a tile." }
+    },
+    {
+      "id": "DM-T16",
+      "kind": "term",
+      "name": "Majority",
+      "description": "The ownership rule for scoring: the player with the most meeples on a finished feature takes its points; if several players tie for the most, every tied player scores.",
+      "code_ref": ["src/Helpers/GameLogic.elm:256-290", "tests/MeepleTests.elm:47-58", "readme.md:66-68"],
+      "unverified": null,
+      "detail": { "definition": "getFeatureOwners returns all players whose meeple count equals the maximum for that SideId." }
+    },
+    {
+      "id": "DM-T17",
+      "kind": "term",
+      "name": "Score",
+      "description": "A player's total points (Int), credited in placeMeeple and finishGame when features finish.",
+      "code_ref": ["src/Types/Score.elm:4-5", "src/Types/Game.elm:29"],
+      "unverified": null,
+      "detail": { "definition": "type alias Score = Int; stored per player in Game.playerScores." }
+    },
+    {
+      "id": "DM-T18",
+      "kind": "term",
+      "name": "Lobby",
+      "description": "The pre-game room: players register by name (unique and non-empty, at most 5), a player may kick another, the lobby can be killed, and InitializeGame starts the game.",
+      "code_ref": ["src/Types.elm:11-17", "src/Backend.elm:93-148"],
+      "unverified": null,
+      "detail": { "definition": "The BePlayerRegistration backend state holding a List PlayerName, mirrored by the FePlayerRegistration/FeLobby frontend states." }
+    },
+    {
+      "id": "DM-CTX1",
+      "kind": "context",
+      "name": "Carcassonne game",
+      "description": "The game domain: tile placement, feature connection through SideIds, meeple claiming, scoring, turn progression, and end-of-game settlement.",
+      "code_ref": ["src/Types/Game.elm:28-40", "src/Helpers/GameLogic.elm:323-370", "src/Helpers/GameLogic.elm:383-508"],
+      "unverified": null,
+      "detail": {
+        "handles": "tile placement with SideId merging, meeple claiming/return, majority scoring of finished features, cloister scoring, turn state machine, draw-stack dealing, game finish",
+        "boundaries": ["src/Types/", "src/Helpers/GameLogic.elm", "src/Helpers/TileMapper.elm", "src/Helpers/FrontendHelpers.elm", "src/Backend.elm (game flow: InitializeGame, PlaceTile, PlaceMeeple, RotateTileLeft, TileDrawStackShuffled)", "tests/"]
+      }
+    },
+    {
+      "id": "DM-CTX2",
+      "kind": "context",
+      "name": "Player lobby / registration",
+      "description": "Pre-game context: name registration, lobby join/kick/kill, the 5-player limit, and rejoining an in-progress game by registering the same name. The app is a single Lamdera backend process; the two contexts are switched via the BackendModel/FrontendModel constructors.",
+      "code_ref": ["src/Backend.elm:93-138", "src/Types.elm:11-17", "src/Types.elm:20-33"],
+      "unverified": null,
+      "detail": {
+        "handles": "player registration (unique non-empty names, 5-player limit), kicking, lobby kill, rejoining a running game (JoinedGame)",
+        "boundaries": ["src/Backend.elm:93-138", "src/Views/PlayerRegistrationView.elm", "src/Views/PlayerLobbyView.elm", "src/Frontend.elm (FePlayerRegistration/FeLobby states)", "src/Types.elm (BackendModel/FrontendModel)"]
+      }
+    },
+    {
+      "id": "DM-E1",
+      "kind": "entity",
+      "name": "Game",
+      "description": "The live game instance; every game action returns a new Game with grid, meeples, scores, turn state, and draw stack mutated as one unit.",
+      "code_ref": ["src/Types/Game.elm:28-40"],
+      "unverified": null,
+      "detail": {
+        "identity": "The live in-memory Lamdera backend model (no persistence, no explicit game id)",
+        "attributes": ["playerScores : Dict PlayerName Score", "playerMeeples : Dict PlayerName Int", "players : Array PlayerName", "currentPlayer : PlayerIndex", "tileToPlace : Tile", "gameState : GameState", "lastPlacedTile : Coordinate", "nextSideId : SideId", "tileDrawStack : List TileId", "tileGrid : TileGrid", "meeples : Dict SideId (List Meeple)"],
+        "behaviors": [
+          { "name": "initializeGame", "code_ref": ["src/Types/Game.elm:53-73"] },
+          { "name": "placeTile", "code_ref": ["src/Helpers/GameLogic.elm:323-370"] },
+          { "name": "placeMeeple", "code_ref": ["src/Helpers/GameLogic.elm:383-508"] },
+          { "name": "finishGame", "code_ref": ["src/Helpers/GameLogic.elm:511-556"] },
+          { "name": "rotateLeft (on tileToPlace)", "code_ref": ["src/Backend.elm:150-158"] },
+          { "name": "draw next playable tile from stack", "code_ref": ["src/Backend.elm:44-74"] }
+        ]
+      }
+    },
+    {
+      "id": "DM-E2",
+      "kind": "entity",
+      "name": "Tile",
+      "description": "A map piece: one of 24 canonical designs (TileId) that, once placed, occupies a board Coordinate; its sides are re-keyed with fresh SideIds and merged with neighbors on placement.",
+      "code_ref": ["src/Types/Tile.elm:21-29"],
+      "unverified": null,
+      "detail": {
+        "identity": "TileId (tileset design) before placement; Coordinate (board cell) once placed, TileId retained for rendering",
+        "attributes": ["tileId : TileId", "rotation : Int", "north/east/south/west : Side { sideId, sideFeature }", "cloister : Maybe SideId"],
+        "behaviors": [
+          { "name": "rotateLeft", "code_ref": ["src/Helpers/GameLogic.elm:21-40"] },
+          { "name": "updateSideIds", "code_ref": ["src/Types/Tile.elm:62-81"] },
+          { "name": "isRotatedCorrectly (test-only check, never called in app code)", "code_ref": ["src/Helpers/GameLogic.elm:45-95", "tests/GameLogicTests.elm:14-56"] }
+        ]
+      }
+    },
+    {
+      "id": "DM-E3",
+      "kind": "entity",
+      "name": "Meeple",
+      "description": "A placed player figure; its identity is the feature claim it makes (the SideId it is stored under) plus owner and board position.",
+      "code_ref": ["src/Types/Meeple.elm:17-23"],
+      "unverified": null,
+      "detail": {
+        "identity": "Feature claim: stored under the SideId of the feature it occupies in Game.meeples, with owner/coordinates/position",
+        "attributes": ["owner : PlayerIndex", "coordinates : Coordinate", "position : MeeplePosition"],
+        "behaviors": [
+          { "name": "claim a side of the last placed tile (placeMeeple insert)", "code_ref": ["src/Helpers/GameLogic.elm:397-416"] },
+          { "name": "re-keyed on feature merge (replaceMeepleSideId)", "code_ref": ["src/Helpers/GameLogic.elm:136-162"] },
+          { "name": "returned to owner when its feature finishes", "code_ref": ["src/Helpers/GameLogic.elm:470-492"] },
+          { "name": "cleared at game end", "code_ref": ["src/Helpers/GameLogic.elm:554"] }
+        ]
+      }
+    },
+    {
+      "id": "DM-E4",
+      "kind": "entity",
+      "name": "Player",
+      "description": "A participant identified only by name (readme: Just identified by string name); there is no standalone Player type in code, the player exists as entries in the Game record (players array, playerScores, playerMeeples).",
+      "code_ref": ["readme.md:89-91", "src/Types/Game.elm:29-32"],
+      "unverified": null,
+      "detail": {
+        "identity": "PlayerName (unique string); seat index (PlayerIndex) in Game.players for turn order and meeple color",
+        "attributes": ["name : PlayerName", "index : PlayerIndex (position in players array)", "score : Score (in playerScores)", "remainingMeeples : Int (in playerMeeples)"],
+        "behaviors": [
+          { "name": "register in lobby", "code_ref": ["src/Backend.elm:93-118"] },
+          { "name": "kick", "code_ref": ["src/Backend.elm:125-133"] },
+          { "name": "score credited on finished features", "code_ref": ["src/Helpers/GameLogic.elm:444-464", "src/Helpers/GameLogic.elm:529-550"] },
+          { "name": "meeple count decremented on placement / incremented on return", "code_ref": ["src/Helpers/GameLogic.elm:482-500"] }
+        ]
+      }
+    },
+    {
+      "id": "DM-V1",
+      "kind": "value_object",
+      "name": "Feature",
+      "description": "The terrain kind of a tile side (City, Road, Field, NoFeature); compared by equality, no identity of its own.",
+      "code_ref": ["src/Types/Feature.elm:4-8"],
+      "unverified": null,
+      "detail": {
+        "attributes": ["City", "Road", "Field", "NoFeature"],
+        "immutability_evidence": "Closed Elm type; immutable by construction, used only as equality-compared data (src/Helpers/GameLogic.elm:431)"
+      }
+    },
+    {
+      "id": "DM-V2",
+      "kind": "value_object",
+      "name": "Side",
+      "description": "One tile side: a SideId plus a Feature; the atomic unit of feature connection.",
+      "code_ref": ["src/Types/Tile.elm:15-18"],
+      "unverified": null,
+      "detail": {
+        "attributes": ["sideId : SideId", "sideFeature : Feature"],
+        "immutability_evidence": "Elm record; updated only by constructing new records (src/Helpers/GameLogic.elm:109-115)"
+      }
+    },
+    {
+      "id": "DM-V3",
+      "kind": "value_object",
+      "name": "SideId",
+      "description": "The feature-instance identifier (Int); -1 means field/no identity.",
+      "code_ref": ["src/Types/Tile.elm:11-12"],
+      "unverified": null,
+      "detail": {
+        "attributes": ["Int (-1 reserved for fields)"],
+        "immutability_evidence": "type alias to Int; every update builds new tiles/dicts (src/Helpers/GameLogic.elm:102-131)"
+      }
+    },
+    {
+      "id": "DM-V4",
+      "kind": "value_object",
+      "name": "Coordinate",
+      "description": "A board cell (x, y); keys the TileGrid and locates meeples.",
+      "code_ref": ["src/Types/Coordinate.elm:4-5"],
+      "unverified": null,
+      "detail": {
+        "attributes": ["x : Int", "y : Int"],
+        "immutability_evidence": "type alias to (Int, Int); Elm tuple values are immutable"
+      }
+    },
+    {
+      "id": "DM-V5",
+      "kind": "value_object",
+      "name": "PlayerIndex",
+      "description": "A player's seat number (0-based) in the turn order.",
+      "code_ref": ["src/Types/PlayerIndex.elm:4-5"],
+      "unverified": null,
+      "detail": {
+        "attributes": ["Int"],
+        "immutability_evidence": "type alias to Int; immutable Elm value"
+      }
+    },
+    {
+      "id": "DM-V6",
+      "kind": "value_object",
+      "name": "PlayerName",
+      "description": "A player's identifying string (unique in the lobby, non-empty).",
+      "code_ref": ["src/Types/PlayerName.elm:4-5", "readme.md:89-91"],
+      "unverified": null,
+      "detail": {
+        "attributes": ["String"],
+        "immutability_evidence": "type alias to String; immutable Elm value"
+      }
+    },
+    {
+      "id": "DM-V7",
+      "kind": "value_object",
+      "name": "Score",
+      "description": "A player's total points.",
+      "code_ref": ["src/Types/Score.elm:4-5"],
+      "unverified": null,
+      "detail": {
+        "attributes": ["Int"],
+        "immutability_evidence": "type alias to Int; scores updated by building a new Dict (src/Helpers/GameLogic.elm:444-464)"
+      }
+    },
+    {
+      "id": "DM-V8",
+      "kind": "value_object",
+      "name": "TileId",
+      "description": "The tileset design number (0-23) used for tile lookup and rendering.",
+      "code_ref": ["src/Types/Tile.elm:7-8"],
+      "unverified": null,
+      "detail": {
+        "attributes": ["Int (0-23)"],
+        "immutability_evidence": "type alias to Int; immutable Elm value"
+      }
+    },
+    {
+      "id": "DM-V9",
+      "kind": "value_object",
+      "name": "MeeplePosition",
+      "description": "Where on the last placed tile a meeple goes (North/East/South/West/Center) or Skip.",
+      "code_ref": ["src/Types/Meeple.elm:8-14"],
+      "unverified": null,
+      "detail": {
+        "attributes": ["Center", "North", "East", "South", "West", "Skip"],
+        "immutability_evidence": "Closed Elm type; immutable by construction"
+      }
+    },
+    {
+      "id": "DM-AG1",
+      "kind": "aggregate",
+      "name": "Game aggregate",
+      "description": "The Game record is the single aggregate root: placing a tile rewrites the grid, re-keys meeples, advances the turn phase and SideId counter in one step; placing a meeple rewrites meeples, scores, meeple counts, current player, and phase in one step. No part can be mutated independently.",
+      "code_ref": ["src/Helpers/GameLogic.elm:364-370", "src/Helpers/GameLogic.elm:502-508"],
+      "unverified": null,
+      "detail": {
+        "root": "DM-E1",
+        "children": ["DM-E2 (placed tiles in tileGrid)", "DM-E3 (placed meeples in meeples)", "DM-E4 (players via players/playerScores/playerMeeples)", "DM-V4 (coordinates as grid keys)", "DM-V7 (scores)"],
+        "consistency_evidence": "placeTile updates tileGrid + meeples + nextSideId + gameState + lastPlacedTile together (src/Helpers/GameLogic.elm:323-370); placeMeeple updates meeples + playerScores + playerMeeples + currentPlayer + gameState together (src/Helpers/GameLogic.elm:383-508)"
+      }
+    },
+    {
+      "id": "DM-R1",
+      "kind": "relationship",
+      "name": "Game contains placed Tiles",
+      "description": "A game holds the placed tiles, keyed by board coordinate.",
+      "code_ref": ["src/Types/Game.elm:38"],
+      "unverified": null,
+      "detail": { "from": "DM-E1", "to": "DM-E2", "cardinality": "1:N" }
+    },
+    {
+      "id": "DM-R2",
+      "kind": "relationship",
+      "name": "Game contains placed Meeples",
+      "description": "A game holds all placed meeples, keyed by the SideId of the feature they claim.",
+      "code_ref": ["src/Types/Game.elm:24-25", "src/Types/Game.elm:39"],
+      "unverified": null,
+      "detail": { "from": "DM-E1", "to": "DM-E3", "cardinality": "1:N" }
+    },
+    {
+      "id": "DM-R3",
+      "kind": "relationship",
+      "name": "Game seats Players",
+      "description": "A game seats 1-5 players with per-player scores and meeple counts.",
+      "code_ref": ["src/Types/Game.elm:29-32", "src/Types/Game.elm:43-45"],
+      "unverified": null,
+      "detail": { "from": "DM-E1", "to": "DM-E4", "cardinality": "1:N" }
+    },
+    {
+      "id": "DM-R4",
+      "kind": "relationship",
+      "name": "Meeple claims a feature (SideId)",
+      "description": "A placed meeple belongs to exactly one feature instance, identified by the SideId key it is stored under.",
+      "code_ref": ["src/Types/Game.elm:24-25", "src/Helpers/GameLogic.elm:397-416"],
+      "unverified": null,
+      "detail": { "from": "DM-E3", "to": "DM-V3", "cardinality": "1:1" }
+    },
+    {
+      "id": "DM-R5",
+      "kind": "relationship",
+      "name": "Tiles form connected features via SideId",
+      "description": "Tiles whose touching sides share a SideId form one connected feature; placing a tile merges the adjacent sides' SideIds into the new tile's SideId across the whole grid and meeple index.",
+      "code_ref": ["src/Helpers/GameLogic.elm:331-362", "src/Helpers/GameLogic.elm:102-131", "src/Helpers/GameLogic.elm:136-162"],
+      "unverified": null,
+      "detail": { "from": "DM-E2", "to": "DM-E2", "cardinality": "N:N" }
+    },
+    {
+      "id": "DM-R6",
+      "kind": "relationship",
+      "name": "Player owns Meeples",
+      "description": "Each meeple records its owner's PlayerIndex; a player's remaining meeple count is tracked in playerMeeples.",
+      "code_ref": ["src/Types/Meeple.elm:18", "src/Types/Game.elm:30"],
+      "unverified": null,
+      "detail": { "from": "DM-E4", "to": "DM-E3", "cardinality": "1:N" }
+    },
+    {
+      "id": "DM-RL1",
+      "kind": "rule",
+      "name": "Tile placement requires adjacency and matching features",
+      "description": "A tile may only be placed on an empty cell orthogonally adjacent to the existing map, and every touching side must be the same Feature as the adjacent tile's facing side (e.g. a field side may not border a road).",
+      "code_ref": ["src/Helpers/FrontendHelpers.elm:48-85", "src/Helpers/FrontendHelpers.elm:89-110", "tests/GameLogicTests.elm:60-225"],
+      "unverified": null,
+      "detail": {
+        "business_statement": "A tile must be placed adjacent to the existing board with all touching sides matching the neighboring features.",
+        "enforced_by": "src/Helpers/FrontendHelpers.elm:48-85 (tileCanBePlaced) and src/Helpers/FrontendHelpers.elm:89-110 (getCoordinatesToBePlacedOn); enforced in the UI only - clickable cells are limited to valid coordinates and shown only to the current player (src/Views/GameView.elm:58-75, src/Views/GameView.elm:318-333); the backend placeTile explicitly does not re-validate (src/Helpers/GameLogic.elm:311-315)."
+      }
+    },
+    {
+      "id": "DM-RL2",
+      "kind": "rule",
+      "name": "Unplaceable drawn tiles are skipped",
+      "description": "A drawn tile that cannot be placed in any of its rotations is skipped: the next playable tile from the shuffled draw stack is dealt instead.",
+      "code_ref": ["src/Helpers/FrontendHelpers.elm:120-143", "src/Backend.elm:44-59", "src/Backend.elm:61-74", "readme.md:60"],
+      "unverified": null,
+      "detail": {
+        "business_statement": "If the drawn tile cannot be placed anywhere, a new tile is drawn (the unplaceable one is left in the reshuffled stack).",
+        "enforced_by": "src/Helpers/FrontendHelpers.elm:120-143 (tileCanBePlacedAnywhere + getPlayableTileFromDrawstack), consumed at game start (src/Backend.elm:44-59) and after each meeple phase (src/Backend.elm:61-74)."
+      }
+    },
+    {
+      "id": "DM-RL3",
+      "kind": "rule",
+      "name": "Rotation keeps features consistent with the tileset design",
+      "description": "Rotating a tile must rotate its features with it; the rotation is applied by physically rotating the four sides (not just a counter), so a rotated tile always matches the canonical tileset design at its rotation.",
+      "code_ref": ["src/Helpers/GameLogic.elm:21-40", "src/Helpers/GameLogic.elm:45-95", "tests/GameLogicTests.elm:14-56"],
+      "unverified": null,
+      "detail": {
+        "business_statement": "A drawn tile's rotation must match its canonical tileset rotation (features aligned with the rotation).",
+        "enforced_by": "src/Helpers/GameLogic.elm:21-40 - rotateLeft rotates the actual side data, so the invariant holds by construction; isRotatedCorrectly (src/Helpers/GameLogic.elm:45-95) verifies rotations 0/90/180/270 against the tileset and is pinned by tests (tests/GameLogicTests.elm:14-56), but is never invoked from app code."
+      }
+    },
+    {
+      "id": "DM-RL4",
+      "kind": "rule",
+      "name": "SideIds merge across adjacent tiles on placement",
+      "description": "When a tile is placed, the SideId on each neighboring tile's facing side is replaced by the new tile's SideId across the entire grid, and the meeple index is re-keyed to match - so touching features become one connected feature.",
+      "code_ref": ["src/Helpers/GameLogic.elm:326-362", "src/Helpers/GameLogic.elm:102-131", "src/Helpers/GameLogic.elm:136-162", "src/Types/Tile.elm:62-81"],
+      "unverified": null,
+      "detail": {
+        "business_statement": "Features connect: sides of the same feature on touching tiles are unified under a single SideId when a tile is placed.",
+        "enforced_by": "src/Helpers/GameLogic.elm:331-362 (placeTile: reads each neighbor's facing SideId, then replaceTileSideId/replaceMeepleSideId rewrite the grid and meeple index); new SideIds allocated via updateSideIds (src/Types/Tile.elm:62-81) and nextSideId (src/Helpers/GameLogic.elm:329, 366)."
+      }
+    },
+    {
+      "id": "DM-RL5",
+      "kind": "rule",
+      "name": "A feature scores only when finished",
+      "description": "A feature scores mid-game only at the moment it is finished - every tile side carrying its SideId is bordered by an already placed tile.",
+      "code_ref": ["src/Helpers/GameLogic.elm:193-203", "src/Helpers/GameLogic.elm:418-422"],
+      "unverified": null,
+      "detail": {
+        "business_statement": "Points are counted immediately only for cities, roads, or cloisters that have been finished.",
+        "enforced_by": "src/Helpers/GameLogic.elm:193-203 (isFeatureFinished) applied as the filter over the last placed tile's SideIds in placeMeeple (src/Helpers/GameLogic.elm:418-422); unclaimed/unmerged open features do not score."
+      }
+    },
+    {
+      "id": "DM-RL6",
+      "kind": "rule",
+      "name": "Finished road/city scoring with 2x city bonus above 2 tiles",
+      "description": "A finished road or city is worth 1 point per tile; a finished city made up of more than 2 tiles is worth 2 points per tile (comment in code: larger cities give 2x when completed before the game ends).",
+      "code_ref": ["src/Helpers/GameLogic.elm:426-435", "src/Helpers/GameLogic.elm:170-188"],
+      "unverified": "readme.md:71 states a flat 2 points per tile for every completed city; the code enforces 2x only when the tile count exceeds 2 (src/Helpers/GameLogic.elm:431), so the readme rule is not enforced as written for 1-2 tile cities.",
+      "detail": {
+        "business_statement": "Completed roads and cities score per tile, with the 2x bonus for larger cities completed before the game ends.",
+        "enforced_by": "src/Helpers/GameLogic.elm:426-435 (countFeature = number of tiles with that SideId, src/Helpers/GameLogic.elm:170-188; doubled when score > 2 and getSideIdFeature == City, src/Helpers/GameLogic.elm:431-432)."
+      }
+    },
+    {
+      "id": "DM-RL7",
+      "kind": "rule",
+      "name": "Completed cloister is worth 9 points",
+      "description": "A cloister is complete when all 8 surrounding cells (orthogonal and diagonal) are filled; when the last adjacent tile is placed it is worth 9 points.",
+      "code_ref": ["src/Helpers/GameLogic.elm:211-224", "src/Helpers/GameLogic.elm:230-251", "src/Helpers/GameLogic.elm:438", "readme.md:72"],
+      "unverified": null,
+      "detail": {
+        "business_statement": "A completed cloister (all adjacent tiles filled) scores 9 points immediately.",
+        "enforced_by": "src/Helpers/GameLogic.elm:211-224 (countCloister counts the 8 neighbors + self) and src/Helpers/GameLogic.elm:230-251 (getAdjacentTileCloisterScores awards 9 where countCloister == 9), appended to the finished-feature scores in placeMeeple (src/Helpers/GameLogic.elm:438)."
+      }
+    },
+    {
+      "id": "DM-RL8",
+      "kind": "rule",
+      "name": "End-of-game scoring of unfinished features",
+      "description": "At game end, all still-claimed features score: roads and cities 1 point per tile, cloisters 1 point per adjacent tile plus 1 for the cloister tile itself.",
+      "code_ref": ["src/Helpers/GameLogic.elm:511-527", "readme.md:74-78"],
+      "unverified": null,
+      "detail": {
+        "business_statement": "When the game ends, incomplete roads/cities score 1 per tile and incomplete cloisters score per adjacent tile.",
+        "enforced_by": "src/Helpers/GameLogic.elm:511-527 (finishGame: featureScores via countFeature for every SideId in the meeple index; cloisterScores via countCloister for every cloister in the grid)."
+      }
+    },
+    {
+      "id": "DM-RL9",
+      "kind": "rule",
+      "name": "Majority scoring, ties share the points",
+      "description": "The player with the most meeples on a finished feature takes its points; if several players tie for the most meeples, every tied player receives the full score.",
+      "code_ref": ["src/Helpers/GameLogic.elm:256-290", "tests/MeepleTests.elm:47-58", "readme.md:66-68"],
+      "unverified": null,
+      "detail": {
+        "business_statement": "Most meeples on the feature wins; on a tie all tied players score.",
+        "enforced_by": "src/Helpers/GameLogic.elm:256-290 (getFeatureOwners returns every player with the maximum count), consumed in placeMeeple (src/Helpers/GameLogic.elm:444-464) and finishGame (src/Helpers/GameLogic.elm:529-550); tie case pinned by tests (tests/MeepleTests.elm:47-58)."
+      }
+    },
+    {
+      "id": "DM-RL10",
+      "kind": "rule",
+      "name": "Meeple cannot be placed on an already claimed feature side",
+      "description": "A meeple may be placed only on a side (or the cloister) of the just placed tile whose feature has no meeple yet; any side whose merged SideId already carries a meeple is closed, for all players.",
+      "code_ref": ["src/Helpers/FrontendHelpers.elm:27-43", "src/Views/GameView.elm:524-539"],
+      "unverified": null,
+      "detail": {
+        "business_statement": "Once a feature side is claimed, no more meeples may be placed on it.",
+        "enforced_by": "src/Helpers/FrontendHelpers.elm:27-43 (getMeeplePositionsToBePlacedOn filters out positions whose SideId already has meeples, Dict.get sideId meeples == Nothing); enforced in the UI - only open positions render as clickable circles (src/Views/GameView.elm:524-539); the backend placeMeeple does not re-validate (src/Helpers/GameLogic.elm:373-382)."
+      }
+    },
+    {
+      "id": "DM-RL11",
+      "kind": "rule",
+      "name": "7 meeples per player with return on finished features",
+      "description": "Each player starts with 7 meeples (6 in hand + 1 for the score track, per readme); placing a meeple decrements the count, and meeples on features that finish are returned to their owners; a player with 0 meeples left can only skip.",
+      "code_ref": ["src/Types/Game.elm:61", "src/Helpers/GameLogic.elm:493-500", "src/Helpers/GameLogic.elm:470-492", "src/Helpers/FrontendHelpers.elm:28-43", "readme.md:50"],
+      "unverified": null,
+      "detail": {
+        "business_statement": "Players have a limited meeple pool (7); used meeples come back when their feature is scored; with no meeples left a player must skip.",
+        "enforced_by": "src/Types/Game.elm:61 (initializeGame sets playerMeeples to 7); src/Helpers/GameLogic.elm:493-500 (decrement on placement, no decrement on Skip); src/Helpers/GameLogic.elm:470-492 (return meeples of finished features to their owners); src/Helpers/FrontendHelpers.elm:28-43 (only [Skip] is offered when the count is 0)."
+      }
+    },
+    {
+      "id": "DM-RL12",
+      "kind": "rule",
+      "name": "Turn alternation PlaceTile then PlaceMeeple then next player",
+      "description": "After placing a tile the same player enters the meeple phase (place one meeple on the new tile or skip); then the turn passes to the next player in seat order, wrapping from last to first.",
+      "code_ref": ["src/Helpers/GameLogic.elm:367", "src/Helpers/GameLogic.elm:502-508", "src/Types/Game.elm:78-84"],
+      "unverified": null,
+      "detail": {
+        "business_statement": "Each turn consists of placing a tile, then optionally a meeple, then the next player plays.",
+        "enforced_by": "placeTile sets gameState = PlaceMeepleState (src/Helpers/GameLogic.elm:367); placeMeeple sets gameState = PlaceTileState and currentPlayer = getNextPlayer (src/Helpers/GameLogic.elm:502-508, src/Types/Game.elm:78-84); the new current player's tile is dealt when the previous turn's stack is reshuffled (src/Backend.elm:170-178)."
+      }
+    },
+    {
+      "id": "DM-RL13",
+      "kind": "rule",
+      "name": "Game ends when no playable tile remains",
+      "description": "The game ends when no tile in the shuffled draw stack can be placed anywhere on the board; final scoring runs, all meeples are cleared, and the state becomes Finished.",
+      "code_ref": ["src/Helpers/FrontendHelpers.elm:132-143", "src/Backend.elm:76-84", "src/Helpers/GameLogic.elm:552-556"],
+      "unverified": "readme.md:74 phrases the end condition as once all of the tiles have been drawn; the code ends as soon as no remaining tile is placeable, which can be before the stack is exhausted.",
+      "detail": {
+        "business_statement": "When there are no more tiles that can be placed, the game is finished and remaining features are scored.",
+        "enforced_by": "src/Helpers/FrontendHelpers.elm:132-143 (getPlayableTileFromDrawstack returns Nothing when no tile fits); src/Backend.elm:76-84 (calls finishGame and broadcasts the final state); src/Helpers/GameLogic.elm:552-556 (gameState = FinishedState, meeples cleared)."
+      }
+    },
+    {
+      "id": "DM-RL14",
+      "kind": "rule",
+      "name": "Lobby limits: 5 players, unique non-empty names",
+      "description": "At most 5 players may join a game; a name that is already registered is rejected; the name must be non-empty (frontend trims and validates).",
+      "code_ref": ["src/Types/Game.elm:43-45", "src/Backend.elm:95-118", "src/Frontend.elm:50-57"],
+      "unverified": null,
+      "detail": {
+        "business_statement": "A lobby holds at most 5 uniquely named players.",
+        "enforced_by": "src/Types/Game.elm:43-45 (playerLimit = 5); src/Backend.elm:95-102 (duplicate name rejected); src/Backend.elm:110-118 (LobbyIsFull when the limit is exceeded); src/Frontend.elm:50-57 (empty names rejected client-side)."
+      }
+    },
+    {
+      "id": "DM-RL15",
+      "kind": "rule",
+      "name": "Field scoring (3 points per touching finished city)",
+      "description": "Documented rule: a field is worth 3 points for each finished city that touches it, counted at the end of the game.",
+      "code_ref": ["readme.md:79"],
+      "unverified": "Documented in readme.md:79 but not enforced in code: field sides carry SideId -1, which is excluded from the scored SideId set (src/Types/Tile.elm:42-45) and scores 0 (src/Helpers/GameLogic.elm:172-173); finishGame scores only meeple-index SideIds and cloisters (src/Helpers/GameLogic.elm:511-527); no field-completion or 3-points-per-city logic exists anywhere.",
+      "detail": {
+        "business_statement": "At the end of the game a field scores 3 points for each finished city touching it.",
+        "enforced_by": null
+      }
+    },
+    {
+      "id": "DM-RL16",
+      "kind": "rule",
+      "name": "Meeples may be placed on fields",
+      "description": "Documented rule: a meeple can be placed on the city, road, cloister, and field of the just placed tile.",
+      "code_ref": ["readme.md:61"],
+      "unverified": "Documented in readme.md:61 but not enforced in code: the placement UI explicitly excludes field sides (SideId -1) from meeple placement (src/Helpers/FrontendHelpers.elm:33-40), so fields are unclaimable in this system and no field meeple can exist to score.",
+      "detail": {
+        "business_statement": "Players may claim fields with meeples.",
+        "enforced_by": null
+      }
+    },
+    {
+      "id": "DM-RL17",
+      "kind": "rule",
+      "name": "Debug mode blocks tile/meeple placement",
+      "description": "Documented rule: while debug mode is on, tiles and meeples cannot be placed.",
+      "code_ref": ["readme.md:129"],
+      "unverified": "Documented in readme.md:129 but not enforced in code: the debug overlay is a non-interactive layer (pointer-events: none, src/Views/GameView.elm:542-590, line 582) and the clickable placement overlays remain active while debug mode is on (src/Views/GameView.elm:64-75, 131-142, 318-333).",
+      "detail": {
+        "business_statement": "Placement is disabled while debug mode shows the SideId overlay.",
+        "enforced_by": null
+      }
+    },
+    {
+      "id": "DM-EV1",
+      "kind": "event",
+      "name": "PlayerRegistered",
+      "description": "A player's name is registered in the lobby (also re-broadcast to every client on each lobby change and on new connections); duplicate names and a full lobby are rejected.",
+      "code_ref": ["src/Backend.elm:93-118", "src/Types.elm:67-70"],
+      "unverified": null,
+      "detail": {
+        "trigger": "RegisterPlayer accepted in BePlayerRegistration (src/Backend.elm:105-113); also sent on connect (src/Backend.elm:40-42) and on duplicate rejection (src/Backend.elm:99-102)",
+        "subscribers": [
+          { "name": "Frontend lobby handler (PlayerRegistrationUpdated)", "code_ref": ["src/Frontend.elm:95-96"] }
+        ]
+      }
+    },
+    {
+      "id": "DM-EV2",
+      "kind": "event",
+      "name": "PlayerKicked",
+      "description": "A lobby player has been kicked; the kicked client drops back to name registration.",
+      "code_ref": ["src/Backend.elm:125-133", "src/Types.elm:71-74"],
+      "unverified": null,
+      "detail": {
+        "trigger": "KickPlayer handled in BePlayerRegistration (src/Backend.elm:125-133)",
+        "subscribers": [
+          { "name": "Frontend lobby handler (PlayerKicked)", "code_ref": ["src/Frontend.elm:98-105"] }
+        ]
+      }
+    },
+    {
+      "id": "DM-EV3",
+      "kind": "event",
+      "name": "LobbyKilled",
+      "description": "The lobby has been dissolved; all clients return to name registration.",
+      "code_ref": ["src/Backend.elm:135-138", "src/Types.elm:76"],
+      "unverified": null,
+      "detail": {
+        "trigger": "KillLobby handled in BePlayerRegistration (src/Backend.elm:135-138)",
+        "subscribers": [
+          { "name": "Frontend lobby handler (LobbyKilled)", "code_ref": ["src/Frontend.elm:117-123"] }
+        ]
+      }
+    },
+    {
+      "id": "DM-EV4",
+      "kind": "event",
+      "name": "GameInitialized",
+      "description": "The game has started: the Game aggregate is created, the draw stack shuffled, and the first playable tile dealt; clients move from lobby to the game view.",
+      "code_ref": ["src/Backend.elm:140-148", "src/Backend.elm:44-59", "src/Types.elm:77-79"],
+      "unverified": null,
+      "detail": {
+        "trigger": "InitializeGame handled in BePlayerRegistration (src/Backend.elm:140-148) followed by the shuffled-stack draw (src/Backend.elm:44-59)",
+        "subscribers": [
+          { "name": "Frontend lobby handler (GameInitialized)", "code_ref": ["src/Frontend.elm:134-141"] }
+        ]
+      }
+    },
+    {
+      "id": "DM-EV5",
+      "kind": "event",
+      "name": "TileRotated",
+      "description": "The current player rotated the drawn tile 90 degrees counter-clockwise; delivered as a full state update.",
+      "code_ref": ["src/Backend.elm:150-158"],
+      "unverified": null,
+      "detail": {
+        "trigger": "RotateTileLeft handled in BeGamePlayed (src/Backend.elm:150-158)",
+        "subscribers": [
+          { "name": "Frontend game handler (UpdateGameState)", "code_ref": ["src/Frontend.elm:143-150"] }
+        ]
+      }
+    },
+    {
+      "id": "DM-EV6",
+      "kind": "event",
+      "name": "TilePlaced",
+      "description": "The current player placed the tile: the grid grew, neighboring SideIds merged, and the turn entered the meeple phase; delivered as a full state update.",
+      "code_ref": ["src/Backend.elm:160-168", "src/Helpers/GameLogic.elm:323-370"],
+      "unverified": null,
+      "detail": {
+        "trigger": "PlaceTile handled in BeGamePlayed (src/Backend.elm:160-168)",
+        "subscribers": [
+          { "name": "Frontend game handler (UpdateGameState)", "code_ref": ["src/Frontend.elm:143-150"] }
+        ]
+      }
+    },
+    {
+      "id": "DM-EV7",
+      "kind": "event",
+      "name": "TileDrawn",
+      "description": "After the previous player placed or skipped a meeple, the stack was reshuffled and the next playable tile was dealt to the new current player (the drawn tile is visible to all clients, per the advice rule).",
+      "code_ref": ["src/Backend.elm:170-178", "src/Backend.elm:61-74"],
+      "unverified": null,
+      "detail": {
+        "trigger": "PlaceMeeple handled in BeGamePlayed (src/Backend.elm:170-178) triggering the shuffled draw (src/Backend.elm:61-74)",
+        "subscribers": [
+          { "name": "Frontend game handler (UpdateGameState)", "code_ref": ["src/Frontend.elm:143-150"] }
+        ]
+      }
+    },
+    {
+      "id": "DM-EV8",
+      "kind": "event",
+      "name": "GameFinished",
+      "description": "No playable tile remained: final scoring ran, all meeples were cleared, and the state became Finished; delivered as a full state update (there is no dedicated event - score changes ride inside the Game record of UpdateGameState).",
+      "code_ref": ["src/Backend.elm:76-84", "src/Helpers/GameLogic.elm:511-556"],
+      "unverified": null,
+      "detail": {
+        "trigger": "getPlayableTileFromDrawstack returned Nothing (src/Backend.elm:76-84) -> finishGame (src/Helpers/GameLogic.elm:511-556)",
+        "subscribers": [
+          { "name": "Frontend game handler (UpdateGameState)", "code_ref": ["src/Frontend.elm:143-150"] }
+        ]
+      }
+    },
+    {
+      "id": "DM-EV9",
+      "kind": "event",
+      "name": "GameTerminated",
+      "description": "A client requested termination (Terminate Game sidebar button): the backend discards the game and resets to an empty lobby; clients return to name registration.",
+      "code_ref": ["src/Backend.elm:180-183", "src/Types.elm:86", "src/Views/GameView.elm:743-745"],
+      "unverified": null,
+      "detail": {
+        "trigger": "TerminateGame handled in BeGamePlayed (src/Backend.elm:180-183)",
+        "subscribers": [
+          { "name": "Frontend game handler (GameTerminated)", "code_ref": ["src/Frontend.elm:152-153"] }
+        ]
+      }
+    },
+    {
+      "id": "DM-S1",
+      "kind": "service",
+      "name": "GameLogic",
+      "description": "The core domain service: tile rotation, feature-finished detection, feature/cloister scoring, majority-owner computation, meeple placement and return, turn-state transitions, and end-of-game settlement.",
+      "code_ref": ["src/Helpers/GameLogic.elm:1-556"],
+      "unverified": null,
+      "detail": {
+        "responsibilities": "rotateLeft, isRotatedCorrectly (test-only), SideId merging (replaceTileSideId/replaceMeepleSideId), countFeature/countCloister, isFeatureFinished, getFeatureOwners, getSideIdFeature, placeTile, placeMeeple, finishGame"
+      }
+    },
+    {
+      "id": "DM-S2",
+      "kind": "service",
+      "name": "TileMapper",
+      "description": "Canonical tileset service: maps a TileId (0-23) to its Tile design (sides with SideIds and Features, optional cloister); unknown ids fall back to the starting tile.",
+      "code_ref": ["src/Helpers/TileMapper.elm:9-253"],
+      "unverified": null,
+      "detail": {
+        "responsibilities": "Hand-written tile definitions for the 24 base-game designs; the single source of truth for tile geometry, consumed by Game initialization (src/Types/Game.elm:66, 104), rotation validation (src/Helpers/GameLogic.elm:50), and draw-stack dealing (src/Helpers/FrontendHelpers.elm:136)"
+      }
+    },
+    {
+      "id": "DM-S3",
+      "kind": "service",
+      "name": "FrontendHelpers",
+      "description": "Playability query service: which board coordinates a tile can be placed on, whether a tile is placeable in any rotation, which tile of the shuffled stack is the next playable one, and which meeple positions are still open on the last placed tile.",
+      "code_ref": ["src/Helpers/FrontendHelpers.elm:27-143"],
+      "unverified": null,
+      "detail": {
+        "responsibilities": "getMeeplePositionsToBePlacedOn, tileCanBePlaced, getCoordinatesToBePlacedOn, tileCanBePlacedAnywhere, getPlayableTileFromDrawstack, toMeepleCoordinates (rendering)"
+      }
+    }
+  ],
+  "gaps": [
+    "No persistence and no explicit game identity: the Game aggregate lives only in the backend process memory (src/Backend.elm:14-34); there is no GameId, no repository, and no reload/resume of a game.",
+    "Feature instances (city/road) are not objects: a feature exists only as a SideId shared across tile sides, with size and ownership computed on demand (src/Helpers/GameLogic.elm:170-188, 256-290); there is no Feature aggregate and no finished-feature event object.",
+    "The backend does not verify whose turn it is: ToBackend messages (src/Types.elm:50-58) carry no check against currentPlayer, and placement/claiming rules are enforced only by UI-side helpers (src/Helpers/FrontendHelpers.elm) - a second player's client could send PlaceTile/PlaceMeeple out of turn.",
+    "Field play is entirely absent (fields are unclaimable and unscorable) despite readme.md:61 and readme.md:79.",
+    "isRotatedCorrectly (src/Helpers/GameLogic.elm:45-95) is defined and unit-tested (tests/GameLogicTests.elm:14-56) but never called from app code; rotation integrity is maintained only by construction via rotateLeft.",
+    "The tileset is 72 tiles (24 designs: 71 in the draw stack + the starting tile), not 74 as the planner note suggested; unknown TileIds silently fall back to the starting tile (src/Helpers/TileMapper.elm:252-253).",
+    "No winner is determined: finishGame (src/Helpers/GameLogic.elm:511-556) only finalizes scores and sets FinishedState; the readme claim that the winner is determined (readme.md:117) has no code counterpart.",
+    "The advice rule (readme.md:81-85, players comment on the drawn tile) has no chat/comment channel; the drawn tile is visible to all clients only incidentally as part of the whole-Game broadcast (src/Backend.elm:73)."
+  ]
+}

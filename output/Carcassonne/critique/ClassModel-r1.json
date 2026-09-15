@@ -1,0 +1,31 @@
+{
+  "artifact": "ClassModel.md",
+  "round": 1,
+  "citations_total": 284,
+  "citations_sampled": 284,
+  "truncated": false,
+  "adjudication": [],
+  "summary": "All 284 unique citations verified 100%; 2 minor defects: off-by-one Model-alias citation (7 spots) and wrong Evergreen file count (23 vs 27).",
+  "defects": [
+    {
+      "id": "C-1",
+      "severity": "minor",
+      "category": "citation",
+      "location": "lines 62, 435, 534, 1114 (Backend alias) and 455, 550, 745 (Frontend alias)",
+      "claim": "alias Model = BackendModel (`src/Backend.elm:13-14`)",
+      "problem": "Off-by-one: the cited range excludes the alias target line; the doc's own relationships table (lines 717-718) cites 14-15/13-14.",
+      "evidence": "src/Backend.elm:13-15 = blank, 'type alias Model =', 'BackendModel'; src/Frontend.elm:12-14 = blank, 'type alias Model =', 'FrontendModel'",
+      "fix_instruction": "Replace `src/Backend.elm:13-14` with `src/Backend.elm:14-15` at lines 62, 435, 534, 1114; replace `src/Frontend.elm:12-13` with `src/Frontend.elm:13-14` at lines 455, 550, 745."
+    },
+    {
+      "id": "S-1",
+      "severity": "minor",
+      "category": "semantic",
+      "location": "Section 8 'CL-32 \u2014 Evergreen Lamdera state snapshots', line 1089",
+      "claim": "23 snapshot/migration files live under src/Evergreen/",
+      "problem": "Wrong count: src/Evergreen/ contains 27 files at the pinned commit.",
+      "evidence": "find src/Evergreen -type f | wc -l -> 27",
+      "fix_instruction": "Replace '23 snapshot/migration files' with '27 files (3 Migrate stubs + 4 version-level Types.elm + 20 per-type subtree files)'."
+    }
+  ]
+}

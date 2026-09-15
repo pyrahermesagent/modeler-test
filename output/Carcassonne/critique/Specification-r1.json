@@ -1,0 +1,91 @@
+{
+  "artifact": "Specification.md",
+  "round": 1,
+  "citations_total": 215,
+  "citations_sampled": 135,
+  "truncated": false,
+  "adjudication": [],
+  "summary": "All 10 sections + cross-refs present; 2 major citation failures (test.yaml:33-34 as compile step; 7-color vs 5-color meeple table) + 5 minor.",
+  "defects": [
+    {
+      "id": "C-1",
+      "severity": "major",
+      "category": "citation",
+      "location": "9. Testing Strategy \u2014 lines 163 and 165",
+      "claim": "the two entry points are compile-checked by CI (.github/workflows/test.yaml:33-34)",
+      "problem": "Lines 33-34 are the 'Install lamdera' (npm install -g lamdera) step, not the compile steps.",
+      "evidence": "test.yaml:33-34 = Install lamdera; compile steps at :39-40 (Compile Frontend) and :42-43 (Compile Backend)",
+      "fix_instruction": "Change both `test.yaml:33-34` citations at lines 163 and 165 to `.github/workflows/test.yaml:39-43`."
+    },
+    {
+      "id": "C-2",
+      "severity": "major",
+      "category": "citation",
+      "location": "6. Data Model & Database Schema \u2014 line 120 (Seed data bullet)",
+      "claim": "a 7-color meeple table (src/Types/Meeple.elm:26-42)",
+      "problem": "meepleColorDictionary has exactly 5 colors (players 0-4, black fallback), not 7.",
+      "evidence": "src/Types/Meeple.elm:29-34 = [(0,\"red\"),(1,\"blue\"),(2,\"green\"),(3,\"yellow\"),(4,\"black\")]; :42 black fallback",
+      "fix_instruction": "Rewrite as 'a 5-color meeple table (one color per player index 0-4, black fallback for out-of-range, src/Types/Meeple.elm:26-42)'."
+    },
+    {
+      "id": "M-1",
+      "severity": "minor",
+      "category": "mermaid",
+      "location": "3.1 Mermaid block, edge label at line 57",
+      "claim": "TR -- ToFrontend (9 constructors) --> FE",
+      "problem": "ToFrontend has exactly 8 constructors (src/Types.elm:67-86); the artifact's own API table lists 8.",
+      "evidence": "src/Types.elm:67-86 = 8 constructors",
+      "fix_instruction": "Change the edge label to `TR -- ToFrontend (8 constructors) --> FE`."
+    },
+    {
+      "id": "S-1",
+      "severity": "minor",
+      "category": "semantic",
+      "location": "5. NFRs \u2014 Security, line 111; Assumptions item 15, line 201",
+      "claim": "Debug.log on every client connect (src/Backend.elm:41)",
+      "problem": "Debug.log fires only when ClientConnected arrives during BePlayerRegistration (lobby); during BeGamePlayed a connect hits the default case with no log.",
+      "evidence": "src/Backend.elm:40-42 (lobby branch with Debug.log); :86-87 default case",
+      "fix_instruction": "Reword both places: 'Debug.log on client connections arriving during the lobby/registration state (src/Backend.elm:40-42); no Debug.log path exists for connections during an active game'."
+    },
+    {
+      "id": "S-2",
+      "severity": "minor",
+      "category": "citation",
+      "location": "12. Assumptions & Unverified Items \u2014 item 10, line 196",
+      "claim": "implied by the Evergreen headers and lamdera/codecs dependency (\u2026 elm.json:13-14)",
+      "problem": "elm.json:13-14 are elm/random and elm/url; lamdera/codecs is at line 17.",
+      "evidence": "elm.json:17 = lamdera/codecs",
+      "fix_instruction": "Replace `elm.json:13-14` at line 196 with `elm.json:17-18`."
+    },
+    {
+      "id": "S-3",
+      "severity": "minor",
+      "category": "citation",
+      "location": "6. Data Model \u2014 line 121; 10. Deployment \u2014 line 173",
+      "claim": "V3\u2192V5 is field-level (src/Evergreen/Migrate/V5.elm:36-43)",
+      "problem": "V5.elm:36-43 shows ModelUnchanged for both top-level models; the field-level migrations are at :120-132 (Game), :140-156 (Tile/Side).",
+      "evidence": "src/Evergreen/Migrate/V5.elm:36-43 ModelUnchanged; field migrations :120-132, :140-156",
+      "fix_instruction": "Re-cite `src/Evergreen/Migrate/V5.elm:120-156` (optionally with :36-43) for the field-level claim at lines 121 and 173; keep V1\u2192V3 and V5\u2192V10 ModelReset citations unchanged."
+    },
+    {
+      "id": "S-4",
+      "severity": "minor",
+      "category": "citation",
+      "location": "4. Functional Requirements \u2014 Third-Party Integrations, line 104",
+      "claim": "auto-deploy on git push lamdera (readme.md:139-151, .github/workflows/test.yaml:33-34)",
+      "problem": "test.yaml:33-34 is the CI npm-install of the lamdera CLI, not auto-deploy evidence; the readme citation alone supports it.",
+      "evidence": "readme.md:147-151 documents 'git push lamdera' auto-deploy",
+      "fix_instruction": "Drop `.github/workflows/test.yaml:33-34` from line 104, leaving readme.md:139-151 as the sole support."
+    },
+    {
+      "id": "S-5",
+      "severity": "minor",
+      "category": "semantic",
+      "location": "6. Data Model & Database Schema \u2014 line 119",
+      "claim": "plus newtype value objects Coordinate, PlayerIndex, PlayerName, Score",
+      "problem": "These are plain type alias definitions over primitives (Coordinate is a tuple alias), not newtypes.",
+      "evidence": "src/Types/Coordinate.elm:4-5 type alias Coordinate = (Int, Int); PlayerIndex/PlayerName/Score similar",
+      "fix_instruction": "Replace 'newtype value objects' with 'value-object type aliases' (keep the four citations)."
+    }
+  ]
+}

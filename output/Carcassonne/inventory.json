@@ -1,0 +1,325 @@
+{
+ "repo_name": ".repo",
+ "generated_at": "2026-09-14T16:04:14+00:00",
+ "totals": {
+  "files": 55,
+  "source_files": 1,
+  "lines": 4188,
+  "lines_by_language": {
+   "other": 3899,
+   "markdown": 170,
+   "json": 73,
+   "yaml": 46
+  }
+ },
+ "top_dirs": [
+  {
+   "dir": "src/",
+   "files": 46,
+   "lines": 3524
+  },
+  {
+   "dir": "tests/",
+   "files": 2,
+   "lines": 296
+  },
+  {
+   "dir": "review/",
+   "files": 2,
+   "lines": 93
+  },
+  {
+   "dir": ".github/",
+   "files": 1,
+   "lines": 46
+  }
+ ],
+ "frameworks": [],
+ "framework_evidence": {},
+ "manifests": [],
+ "buckets": {
+  "db": [],
+  "frontend": [],
+  "backend": [],
+  "tests": [],
+  "entry": []
+ },
+ "files": [
+  {
+   "path": ".gitignore",
+   "ext": "gitignore",
+   "lines": 6
+  },
+  {
+   "path": "readme.md",
+   "ext": "md",
+   "lines": 170
+  },
+  {
+   "path": "elm.json",
+   "ext": "json",
+   "lines": 32
+  },
+  {
+   "path": "LICENSE",
+   "ext": "",
+   "lines": 21
+  },
+  {
+   "path": "src/Backend.elm",
+   "ext": "elm",
+   "lines": 191
+  },
+  {
+   "path": "src/Styles.elm",
+   "ext": "elm",
+   "lines": 73
+  },
+  {
+   "path": "src/Frontend.elm",
+   "ext": "elm",
+   "lines": 169
+  },
+  {
+   "path": "src/Types.elm",
+   "ext": "elm",
+   "lines": 86
+  },
+  {
+   "path": "src/Evergreen/Migrate/V10.elm",
+   "ext": "elm",
+   "lines": 63
+  },
+  {
+   "path": "src/Evergreen/Migrate/V5.elm",
+   "ext": "elm",
+   "lines": 195
+  },
+  {
+   "path": "src/Evergreen/Migrate/V3.elm",
+   "ext": "elm",
+   "lines": 54
+  },
+  {
+   "path": "src/Evergreen/V5/Types.elm",
+   "ext": "elm",
+   "lines": 75
+  },
+  {
+   "path": "src/Evergreen/V5/Types/PlayerName.elm",
+   "ext": "elm",
+   "lines": 5
+  },
+  {
+   "path": "src/Evergreen/V5/Types/GameState.elm",
+   "ext": "elm",
+   "lines": 7
+  },
+  {
+   "path": "src/Evergreen/V5/Types/Feature.elm",
+   "ext": "elm",
+   "lines": 7
+  },
+  {
+   "path": "src/Evergreen/V5/Types/Game.elm",
+   "ext": "elm",
+   "lines": 41
+  },
+  {
+   "path": "src/Evergreen/V5/Types/Tile.elm",
+   "ext": "elm",
+   "lines": 28
+  },
+  {
+   "path": "src/Evergreen/V3/Types.elm",
+   "ext": "elm",
+   "lines": 69
+  },
+  {
+   "path": "src/Evergreen/V3/Types/PlayerName.elm",
+   "ext": "elm",
+   "lines": 5
+  },
+  {
+   "path": "src/Evergreen/V3/Types/GameState.elm",
+   "ext": "elm",
+   "lines": 7
+  },
+  {
+   "path": "src/Evergreen/V3/Types/Feature.elm",
+   "ext": "elm",
+   "lines": 7
+  },
+  {
+   "path": "src/Evergreen/V3/Types/Game.elm",
+   "ext": "elm",
+   "lines": 41
+  },
+  {
+   "path": "src/Evergreen/V3/Types/Tile.elm",
+   "ext": "elm",
+   "lines": 28
+  },
+  {
+   "path": "src/Evergreen/V10/Types.elm",
+   "ext": "elm",
+   "lines": 88
+  },
+  {
+   "path": "src/Evergreen/V10/Types/PlayerName.elm",
+   "ext": "elm",
+   "lines": 5
+  },
+  {
+   "path": "src/Evergreen/V10/Types/GameState.elm",
+   "ext": "elm",
+   "lines": 7
+  },
+  {
+   "path": "src/Evergreen/V10/Types/Score.elm",
+   "ext": "elm",
+   "lines": 5
+  },
+  {
+   "path": "src/Evergreen/V10/Types/Feature.elm",
+   "ext": "elm",
+   "lines": 8
+  },
+  {
+   "path": "src/Evergreen/V10/Types/Game.elm",
+   "ext": "elm",
+   "lines": 38
+  },
+  {
+   "path": "src/Evergreen/V10/Types/Meeple.elm",
+   "ext": "elm",
+   "lines": 20
+  },
+  {
+   "path": "src/Evergreen/V10/Types/Tile.elm",
+   "ext": "elm",
+   "lines": 28
+  },
+  {
+   "path": "src/Evergreen/V10/Types/Coordinate.elm",
+   "ext": "elm",
+   "lines": 5
+  },
+  {
+   "path": "src/Evergreen/V10/Types/PlayerIndex.elm",
+   "ext": "elm",
+   "lines": 5
+  },
+  {
+   "path": "src/Evergreen/V1/Types.elm",
+   "ext": "elm",
+   "lines": 49
+  },
+  {
+   "path": "src/Evergreen/V1/Types/PlayerName.elm",
+   "ext": "elm",
+   "lines": 5
+  },
+  {
+   "path": "src/Helpers/FrontendHelpers.elm",
+   "ext": "elm",
+   "lines": 143
+  },
+  {
+   "path": "src/Helpers/TileMapper.elm",
+   "ext": "elm",
+   "lines": 253
+  },
+  {
+   "path": "src/Helpers/GameLogic.elm",
+   "ext": "elm",
+   "lines": 556
+  },
+  {
+   "path": "src/Views/GameView.elm",
+   "ext": "elm",
+   "lines": 750
+  },
+  {
+   "path": "src/Views/PlayerRegistrationView.elm",
+   "ext": "elm",
+   "lines": 46
+  },
+  {
+   "path": "src/Views/PlayerLobbyView.elm",
+   "ext": "elm",
+   "lines": 39
+  },
+  {
+   "path": "src/Types/PlayerName.elm",
+   "ext": "elm",
+   "lines": 5
+  },
+  {
+   "path": "src/Types/GameState.elm",
+   "ext": "elm",
+   "lines": 20
+  },
+  {
+   "path": "src/Types/Score.elm",
+   "ext": "elm",
+   "lines": 5
+  },
+  {
+   "path": "src/Types/Feature.elm",
+   "ext": "elm",
+   "lines": 8
+  },
+  {
+   "path": "src/Types/Game.elm",
+   "ext": "elm",
+   "lines": 147
+  },
+  {
+   "path": "src/Types/Meeple.elm",
+   "ext": "elm",
+   "lines": 42
+  },
+  {
+   "path": "src/Types/Tile.elm",
+   "ext": "elm",
+   "lines": 86
+  },
+  {
+   "path": "src/Types/Coordinate.elm",
+   "ext": "elm",
+   "lines": 5
+  },
+  {
+   "path": "src/Types/PlayerIndex.elm",
+   "ext": "elm",
+   "lines": 5
+  },
+  {
+   "path": ".github/workflows/test.yaml",
+   "ext": "yaml",
+   "lines": 46
+  },
+  {
+   "path": "tests/MeepleTests.elm",
+   "ext": "elm",
+   "lines": 71
+  },
+  {
+   "path": "tests/GameLogicTests.elm",
+   "ext": "elm",
+   "lines": 225
+  },
+  {
+   "path": "review/elm.json",
+   "ext": "json",
+   "lines": 41
+  },
+  {
+   "path": "review/src/ReviewConfig.elm",
+   "ext": "elm",
+   "lines": 52
+  }
+ ],
+ "files_truncated": false
+}

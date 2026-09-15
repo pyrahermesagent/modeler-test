@@ -1,0 +1,41 @@
+{
+  "artifact": "UseCaseModel.md",
+  "round": 1,
+  "citations_total": 345,
+  "citations_sampled": 345,
+  "truncated": false,
+  "adjudication": [],
+  "summary": "All 345 citations verified; per-UC structure complete; 3 minor defects (wrong line in broadcast list, solid P\u2192UC07 edge, Feature definition cloister claim).",
+  "defects": [
+    {
+      "id": "C-1",
+      "severity": "minor",
+      "category": "citation",
+      "location": "Section 2.2 Secondary / System Actors, line 66 (Lamdera actor bullet)",
+      "claim": "broadcasts ToFrontend messages to all connected clients via broadcast (src/Backend.elm:58, 73, 83, 112, 132, 137, 157, 167, 177, 182)",
+      "problem": "src/Backend.elm:177 is the Random.generate TileDrawStackShuffled command, not a broadcast call.",
+      "evidence": "src/Backend.elm:177 = ', Random.generate TileDrawStackShuffled (Random.List.shuffle updatedGame.tileDrawStack)'",
+      "fix_instruction": "Remove 177 from the citation list at line 66 \u2192 src/Backend.elm:58, 73, 83, 112, 132, 137, 157, 167, 182."
+    },
+    {
+      "id": "M-1",
+      "severity": "minor",
+      "category": "mermaid",
+      "location": "Section 3 Mermaid block line 94 (P --> UC07)",
+      "claim": "solid edge P --> UC07 while the description says UC-07 is system-internal (triggered by UC-06 or draw-stack exhaustion)",
+      "problem": "Direct solid Player association to UC-07 contradicts the doc's own description (line 102) and UC-07's actor row (line 386).",
+      "evidence": "n/a (internal consistency)",
+      "fix_instruction": "Replace `P --> UC07` with a dashed trigger edge `UC06 -.->|triggers| UC07` (optionally keep `P -.-> UC07`). Node map stays valid."
+    },
+    {
+      "id": "S-1",
+      "severity": "minor",
+      "category": "semantic",
+      "location": "Section 1.3 Definitions table, 'Feature' row (line 23)",
+      "claim": "Feature \u2014 A connected region on the board (road, city, field, cloister); connectivity tracked by shared SideId",
+      "problem": "type Feature = City | Road | Field | NoFeature has no cloister variant; cloisters are tracked via Tile.cloister : Maybe SideId (src/Types/Tile.elm:28).",
+      "evidence": "src/Types/Feature.elm:4-7; src/Types/Tile.elm:28",
+      "fix_instruction": "Either drop 'cloister' from the parenthetical, or reword 'cloisters are tracked separately via Tile.cloister' + add src/Types/Tile.elm:28 to the citation cell."
+    }
+  ]
+}

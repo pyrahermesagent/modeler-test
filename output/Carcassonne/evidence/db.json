@@ -1,0 +1,902 @@
+{
+  "model": "db",
+  "repo_name": "Carcassonne",
+  "repo_sha": "ca2797745a863243fa6ce96af63435b0d67bf2ab",
+  "analyst_status": "ok",
+  "generated_by": "02-db-analyst",
+  "scope_note": "No DBMS exists in this repo; the 'data layer' is the Lamdera in-memory backend model (src/Backend.elm) with compiler-generated Evergreen state snapshots (src/Evergreen/) and migrations. In scope: src/Evergreen/, src/Types/, src/Types.elm, tests/, plus src/Backend.elm and src/Helpers/TileMapper.elm for storage and seed data.",
+  "elements": [
+    {
+      "id": "DB-ST1",
+      "kind": "storage_tech",
+      "name": "Lamdera backend model + Evergreen state versioning",
+      "description": "Single-node in-memory state store. The authoritative application state is the Lamdera backend `Model` (alias for `BackendModel`), held in the backend process and serialized by the Lamdera platform across sessions/deploys. No SQL, no ORM, no connection strings; Elm's total types mean no nullable columns exist (the only Maybe fields are Tile.cloister and FrontendModel.error).",
+      "code_ref": [
+        "src/Backend.elm:14-15",
+        "src/Backend.elm:18-25",
+        "src/Types.elm:11-17",
+        "elm.json:12-15",
+        "src/Evergreen/Migrate/V10.elm:3-18"
+      ],
+      "detail": {
+        "dbms": "none — Lamdera in-memory backend model (platform-managed serialization; no DBMS in repo)",
+        "orm": "none — direct Elm value composition; no persistence abstraction layer",
+        "migration_tool": "Lamdera Evergreen (compiler-generated snapshot + migration files under src/Evergreen/)",
+        "connection_citation": "src/Backend.elm:18-25 (Lamdera.backend { init, update, updateFromFrontend, subscriptions })"
+      }
+    },
+    {
+      "id": "DB-T1",
+      "kind": "table",
+      "name": "BackendModel",
+      "description": "Top-level persisted state record of the Lamdera backend (the `Model` alias). Algebraic type with two variants: BePlayerRegistration (lobby, players only) and BeGamePlayed (active game). Exactly one variant holds at a time; the game is dropped when the lobby is reset.",
+      "code_ref": [
+        "src/Types.elm:11-17",
+        "src/Backend.elm:14-15"
+      ],
+      "detail": {
+        "columns": ["DB-C1-1", "DB-C1-2"],
+        "source_of_truth": "schema_file",
+        "adt_variants": ["BePlayerRegistration { players }", "BeGamePlayed { game }"],
+        "module": "Types"
+      }
+    },
+    {
+      "id": "DB-T2",
+      "kind": "table",
+      "name": "FrontendModel",
+      "description": "Per-session frontend state (mirror of the backend view for one player). Algebraic type with three variants: FePlayerRegistration, FeLobby, FeGamePlayed. Persisted per Lamdera session alongside the backend model.",
+      "code_ref": [
+        "src/Types.elm:20-33"
+      ],
+      "detail": {
+        "columns": ["DB-C2-1", "DB-C2-2", "DB-C2-3", "DB-C2-4", "DB-C2-5", "DB-C2-6", "DB-C2-7"],
+        "source_of_truth": "schema_file",
+        "adt_variants": ["FePlayerRegistration { nameInput, error }", "FeLobby { playerName, players }", "FeGamePlayed { playerName, debugMode, game }"],
+        "module": "Types"
+      }
+    },
+    {
+      "id": "DB-T3",
+      "kind": "table",
+      "name": "Game",
+      "description": "The core game-state record: player scores, remaining meeples, ordered player list, current turn, the tile about to be placed, phase, last placed tile, next feature id counter, shuffled tile draw stack, the placed-tile grid, and the meeples grouped by feature.",
+      "code_ref": [
+        "src/Types/Game.elm:28-40"
+      ],
+      "detail": {
+        "columns": ["DB-C3-1", "DB-C3-2", "DB-C3-3", "DB-C3-4", "DB-C3-5", "DB-C3-6", "DB-C3-7", "DB-C3-8", "DB-C3-9", "DB-C3-10", "DB-C3-11"],
+        "source_of_truth": "schema_file",
+        "module": "Types.Game"
+      }
+    },
+    {
+      "id": "DB-T4",
+      "kind": "table",
+      "name": "TileGrid",
+      "description": "Collection of placed tiles: a Dict keyed by board Coordinate. Grows as tiles are placed; seeded with the center Cloister tile at (0,0).",
+      "code_ref": [
+        "src/Types/Game.elm:20-21",
+        "src/Types/Game.elm:102-104"
+      ],
+      "detail": {
+        "columns": [],
+        "source_of_truth": "schema_file",
+        "elm_type": "Dict Coordinate Tile",
+        "module": "Types.Game"
+      }
+    },
+    {
+      "id": "DB-T5",
+      "kind": "table",
+      "name": "PlayerScores",
+      "description": "Player score table: Dict keyed by PlayerName with Score (Int) values. Initialized to 0 per player at game start; updated at feature completion.",
+      "code_ref": [
+        "src/Types/Game.elm:16-17",
+        "src/Types/Game.elm:60"
+      ],
+      "detail": {
+        "columns": [],
+        "source_of_truth": "schema_file",
+        "elm_type": "Dict PlayerName Score",
+        "module": "Types.Game"
+      }
+    },
+    {
+      "id": "DB-T6",
+      "kind": "table",
+      "name": "Meeples",
+      "description": "Meeple registry grouped by feature: Dict keyed by SideId (feature id), each entry a List of Meeple on that feature. Started empty; entries are inserted when meeples are placed and removed when a feature is scored.",
+      "code_ref": [
+        "src/Types/Game.elm:24-25",
+        "src/Helpers/GameLogic.elm:256-262",
+        "src/Helpers/GameLogic.elm:401-413"
+      ],
+      "detail": {
+        "columns": [],
+        "source_of_truth": "schema_file",
+        "elm_type": "Dict SideId (List Meeple)",
+        "module": "Types.Game"
+      }
+    },
+    {
+      "id": "DB-T7",
+      "kind": "table",
+      "name": "Tile",
+      "description": "A placed or pending tile instance: its tileset id, current rotation (degrees), four cardinal sides (north/east/south/west) and an optional Cloister side reference. Rotation is normalized to [0,360) after 360000 degrees to prevent overflow.",
+      "code_ref": [
+        "src/Types/Tile.elm:21-29",
+        "src/Helpers/GameLogic.elm:21-40"
+      ],
+      "detail": {
+        "columns": ["DB-C7-1", "DB-C7-2", "DB-C7-3", "DB-C7-4", "DB-C7-5", "DB-C7-6", "DB-C7-7"],
+        "source_of_truth": "schema_file",
+        "module": "Types.Tile"
+      }
+    },
+    {
+      "id": "DB-T8",
+      "kind": "table",
+      "name": "Side",
+      "description": "One side of a tile: a feature id (SideId; -1 marks a field side that does not belong to a named feature) and the Feature it borders. SideIds are renumbered globally (updateSideIds) so connected features across tiles share an id.",
+      "code_ref": [
+        "src/Types/Tile.elm:15-18",
+        "src/Types/Tile.elm:62-81"
+      ],
+      "detail": {
+        "columns": ["DB-C8-1", "DB-C8-2"],
+        "source_of_truth": "schema_file",
+        "module": "Types.Tile"
+      }
+    },
+    {
+      "id": "DB-T9",
+      "kind": "table",
+      "name": "Meeple",
+      "description": "A player's meeple: owning player index, board coordinate, and position (Center/North/East/South/West/Skip). Type comment notes room for expansion properties (large meeple, pig, ...).",
+      "code_ref": [
+        "src/Types/Meeple.elm:17-23"
+      ],
+      "detail": {
+        "columns": ["DB-C9-1", "DB-C9-2", "DB-C9-3"],
+        "source_of_truth": "schema_file",
+        "module": "Types.Meeple"
+      }
+    },
+    {
+      "id": "DB-T10",
+      "kind": "table",
+      "name": "Feature",
+      "description": "Enum of the kinds of Carcassonne features a tile side can border.",
+      "code_ref": [
+        "src/Types/Feature.elm:4-8"
+      ],
+      "detail": {
+        "columns": [],
+        "source_of_truth": "schema_file",
+        "enum_values": ["City", "Road", "Field", "NoFeature"],
+        "module": "Types.Feature"
+      }
+    },
+    {
+      "id": "DB-T11",
+      "kind": "table",
+      "name": "GameState",
+      "description": "Enum of the current game phase: placing a tile, placing a meeple, or finished.",
+      "code_ref": [
+        "src/Types/GameState.elm:4-7"
+      ],
+      "detail": {
+        "columns": [],
+        "source_of_truth": "schema_file",
+        "enum_values": ["PlaceTileState", "PlaceMeepleState", "FinishedState"],
+        "module": "Types.GameState"
+      }
+    },
+    {
+      "id": "DB-T12",
+      "kind": "table",
+      "name": "MeeplePosition",
+      "description": "Enum of where a meeple is placed relative to the last placed tile (or Skip to decline placement).",
+      "code_ref": [
+        "src/Types/Meeple.elm:8-14"
+      ],
+      "detail": {
+        "columns": [],
+        "source_of_truth": "schema_file",
+        "enum_values": ["Center", "North", "East", "South", "West", "Skip"],
+        "module": "Types.Meeple"
+      }
+    },
+    {
+      "id": "DB-T13",
+      "kind": "table",
+      "name": "Score",
+      "description": "Value type alias: a player's accumulated points.",
+      "code_ref": [
+        "src/Types/Score.elm:4-5"
+      ],
+      "detail": {
+        "columns": ["DB-C13-1"],
+        "source_of_truth": "schema_file",
+        "elm_type": "Int",
+        "module": "Types.Score"
+      }
+    },
+    {
+      "id": "DB-T14",
+      "kind": "table",
+      "name": "Coordinate",
+      "description": "Value type alias: a board grid position as an (x, y) integer pair; negative coordinates are used (grid extends in all four directions from the center).",
+      "code_ref": [
+        "src/Types/Coordinate.elm:4-5",
+        "tests/MeepleTests.elm:29"
+      ],
+      "detail": {
+        "columns": ["DB-C14-1"],
+        "source_of_truth": "schema_file",
+        "elm_type": "(Int, Int)",
+        "module": "Types.Coordinate"
+      }
+    },
+    {
+      "id": "DB-T15",
+      "kind": "table",
+      "name": "PlayerIndex",
+      "description": "Value type alias: a player's position in the turn-order array (0-based). Domain is 0..4 enforced by playerLimit = 5.",
+      "code_ref": [
+        "src/Types/PlayerIndex.elm:4-5",
+        "src/Types/Game.elm:43-45"
+      ],
+      "detail": {
+        "columns": ["DB-C15-1"],
+        "source_of_truth": "schema_file",
+        "elm_type": "Int",
+        "module": "Types.PlayerIndex",
+        "domain_constraint": "0..playerLimit-1 (playerLimit = 5, src/Types/Game.elm:43-45)"
+      }
+    },
+    {
+      "id": "DB-T16",
+      "kind": "table",
+      "name": "PlayerName",
+      "description": "Value type alias: a player's unique display name (String). Uniqueness across the lobby is enforced at registration by List.member.",
+      "code_ref": [
+        "src/Types/PlayerName.elm:4-5",
+        "src/Backend.elm:93-97"
+      ],
+      "detail": {
+        "columns": ["DB-C16-1"],
+        "source_of_truth": "schema_file",
+        "elm_type": "String",
+        "module": "Types.PlayerName",
+        "domain_constraint": "unique within lobby (enforced at registration, src/Backend.elm:95-101)"
+      }
+    },
+    {
+      "id": "DB-C1-1",
+      "kind": "column",
+      "name": "players",
+      "description": "Registered lobby players (BePlayerRegistration variant). Max 5; duplicates rejected.",
+      "code_ref": ["src/Types.elm:13", "src/Backend.elm:110-118"],
+      "detail": { "type": "List PlayerName", "nullable": false, "default": "[] at backend init", "unique": false, "max_cardinality": "5" }
+    },
+    {
+      "id": "DB-C1-2",
+      "kind": "column",
+      "name": "game",
+      "description": "The active game (BeGamePlayed variant).",
+      "code_ref": ["src/Types.elm:16"],
+      "detail": { "type": "Game", "nullable": false, "default": null, "unique": true }
+    },
+    {
+      "id": "DB-C2-1",
+      "kind": "column",
+      "name": "nameInput",
+      "description": "Text buffer of the player-name input field (FePlayerRegistration variant).",
+      "code_ref": ["src/Types.elm:22"],
+      "detail": { "type": "String", "nullable": false, "default": null, "unique": false }
+    },
+    {
+      "id": "DB-C2-2",
+      "kind": "column",
+      "name": "error",
+      "description": "Registration error message shown in the lobby (FePlayerRegistration variant); the one nullable-equivalent field in the frontend model.",
+      "code_ref": ["src/Types.elm:23"],
+      "detail": { "type": "Maybe String", "nullable": true, "default": null, "unique": false }
+    },
+    {
+      "id": "DB-C2-3",
+      "kind": "column",
+      "name": "playerName (FeLobby)",
+      "description": "This session's player, once registered (FeLobby variant).",
+      "code_ref": ["src/Types.elm:26"],
+      "detail": { "type": "PlayerName", "nullable": false, "default": null, "unique": true }
+    },
+    {
+      "id": "DB-C2-4",
+      "kind": "column",
+      "name": "players (FeLobby)",
+      "description": "Lobby player list as seen by this session (FeLobby variant).",
+      "code_ref": ["src/Types.elm:27"],
+      "detail": { "type": "List PlayerName", "nullable": false, "default": null, "unique": false }
+    },
+    {
+      "id": "DB-C2-5",
+      "kind": "column",
+      "name": "playerName (FeGamePlayed)",
+      "description": "This session's player during an active game (FeGamePlayed variant).",
+      "code_ref": ["src/Types.elm:30"],
+      "detail": { "type": "PlayerName", "nullable": false, "default": null, "unique": true }
+    },
+    {
+      "id": "DB-C2-6",
+      "kind": "column",
+      "name": "debugMode",
+      "description": "Per-session debug rendering toggle (FeGamePlayed variant).",
+      "code_ref": ["src/Types.elm:31"],
+      "detail": { "type": "Bool", "nullable": false, "default": null, "unique": false }
+    },
+    {
+      "id": "DB-C2-7",
+      "kind": "column",
+      "name": "game (FeGamePlayed)",
+      "description": "Frontend copy of the Game record (FeGamePlayed variant).",
+      "code_ref": ["src/Types.elm:32"],
+      "detail": { "type": "Game", "nullable": false, "default": null, "unique": true }
+    },
+    {
+      "id": "DB-C3-1",
+      "kind": "column",
+      "name": "playerScores",
+      "description": "Score per player, keyed by name.",
+      "code_ref": ["src/Types/Game.elm:29"],
+      "detail": { "type": "PlayerScores (Dict PlayerName Score)", "nullable": false, "default": "0 per player at initializeGame", "unique": false }
+    },
+    {
+      "id": "DB-C3-2",
+      "kind": "column",
+      "name": "playerMeeples",
+      "description": "Remaining meeple count per player, keyed by name.",
+      "code_ref": ["src/Types/Game.elm:30", "src/Types/Game.elm:61"],
+      "detail": { "type": "Dict PlayerName Int", "nullable": false, "default": "7 per player at initializeGame", "unique": false }
+    },
+    {
+      "id": "DB-C3-3",
+      "kind": "column",
+      "name": "players",
+      "description": "Ordered turn list; index doubles as PlayerIndex.",
+      "code_ref": ["src/Types/Game.elm:31"],
+      "detail": { "type": "Array PlayerName", "nullable": false, "default": null, "unique": true, "constraint": "1..5 entries; must not be empty (initializeGame doc comment)" }
+    },
+    {
+      "id": "DB-C3-4",
+      "kind": "column",
+      "name": "currentPlayer",
+      "description": "Index of the player whose turn it is; wraps around via getNextPlayer.",
+      "code_ref": ["src/Types/Game.elm:32", "src/Types/Game.elm:78-84"],
+      "detail": { "type": "PlayerIndex", "nullable": false, "default": "0 at initializeGame", "unique": false, "constraint": "0..Array.length players - 1" }
+    },
+    {
+      "id": "DB-C3-5",
+      "kind": "column",
+      "name": "tileToPlace",
+      "description": "The tile currently on the table to be placed (next draw from tileDrawStack).",
+      "code_ref": ["src/Types/Game.elm:33", "src/Backend.elm:44-59"],
+      "detail": { "type": "Tile", "nullable": false, "default": "getTile 0 placeholder, replaced by random shuffled draw at InitializeGame", "unique": true }
+    },
+    {
+      "id": "DB-C3-6",
+      "kind": "column",
+      "name": "gameState",
+      "description": "Current phase of the turn.",
+      "code_ref": ["src/Types/Game.elm:34"],
+      "detail": { "type": "GameState", "nullable": false, "default": "PlaceTileState at initializeGame", "unique": false, "enum_values": ["PlaceTileState", "PlaceMeepleState", "FinishedState"] }
+    },
+    {
+      "id": "DB-C3-7",
+      "kind": "column",
+      "name": "lastPlacedTile",
+      "description": "Coordinate of the most recently placed tile; basis for meeple placement and adjacency checks.",
+      "code_ref": ["src/Types/Game.elm:35", "src/Helpers/GameLogic.elm:393-413"],
+      "detail": { "type": "Coordinate", "nullable": false, "default": "(0, 0) at initializeGame", "unique": true }
+    },
+    {
+      "id": "DB-C3-8",
+      "kind": "column",
+      "name": "nextSideId",
+      "description": "Monotonic feature-id counter; new feature SideIds are allocated from here so globally connected features keep a stable id.",
+      "code_ref": ["src/Types/Game.elm:36", "src/Types/Game.elm:109-115"],
+      "detail": { "type": "SideId (Int)", "nullable": false, "default": "max existing SideId over grid at initializeGame", "unique": false }
+    },
+    {
+      "id": "DB-C3-9",
+      "kind": "column",
+      "name": "tileDrawStack",
+      "description": "Shuffled remaining tile pool (List of TileId). Reshuffled via Random.List.shuffle through BackendMsg after game init and each meeple placement.",
+      "code_ref": ["src/Types/Game.elm:37", "src/Backend.elm:147", "src/Backend.elm:177"],
+      "detail": { "type": "List TileId", "nullable": false, "default": "initializeDrawStack (71 tiles)", "unique": false, "constraint": "71 entries at start; empty when game is finished (finishGame on Nothing draw, src/Backend.elm:76-84)" }
+    },
+    {
+      "id": "DB-C3-10",
+      "kind": "column",
+      "name": "tileGrid",
+      "description": "The placed tiles on the board.",
+      "code_ref": ["src/Types/Game.elm:38"],
+      "detail": { "type": "TileGrid (Dict Coordinate Tile)", "nullable": false, "default": "single center tile (0,0)=getTile 0", "unique": true }
+    },
+    {
+      "id": "DB-C3-11",
+      "kind": "column",
+      "name": "meeples",
+      "description": "All placed meeples grouped by the feature (SideId) they occupy.",
+      "code_ref": ["src/Types/Game.elm:39"],
+      "detail": { "type": "Meeples (Dict SideId (List Meeple))", "nullable": false, "default": "Dict.empty at initializeGame", "unique": true }
+    },
+    {
+      "id": "DB-C7-1",
+      "kind": "column",
+      "name": "tileId",
+      "description": "Identity of this tile's tileset definition (0..23 defined; unknown ids fall back to tile 0).",
+      "code_ref": ["src/Types/Tile.elm:22", "src/Helpers/TileMapper.elm:9-12", "src/Helpers/TileMapper.elm:252-253"],
+      "detail": { "type": "TileId (Int)", "nullable": false, "default": null, "unique": true, "constraint": "defined domain 0..23" }
+    },
+    {
+      "id": "DB-C7-2",
+      "kind": "column",
+      "name": "rotation",
+      "description": "Current rotation in degrees (0/90/180/270); reset with modBy 360 once it reaches 360000 to avoid overflow.",
+      "code_ref": ["src/Types/Tile.elm:23", "src/Helpers/GameLogic.elm:24-31"],
+      "detail": { "type": "Int", "nullable": false, "default": "0", "unique": false, "constraint": "kept in 0..359 by modBy 360 when >= 360000" }
+    },
+    {
+      "id": "DB-C7-3",
+      "kind": "column",
+      "name": "north",
+      "description": "North side of the tile.",
+      "code_ref": ["src/Types/Tile.elm:24"],
+      "detail": { "type": "Side", "nullable": false, "default": null, "unique": false }
+    },
+    {
+      "id": "DB-C7-4",
+      "kind": "column",
+      "name": "east",
+      "description": "East side of the tile.",
+      "code_ref": ["src/Types/Tile.elm:25"],
+      "detail": { "type": "Side", "nullable": false, "default": null, "unique": false }
+    },
+    {
+      "id": "DB-C7-5",
+      "kind": "column",
+      "name": "south",
+      "description": "South side of the tile.",
+      "code_ref": ["src/Types/Tile.elm:26"],
+      "detail": { "type": "Side", "nullable": false, "default": null, "unique": false }
+    },
+    {
+      "id": "DB-C7-6",
+      "kind": "column",
+      "name": "west",
+      "description": "West side of the tile.",
+      "code_ref": ["src/Types/Tile.elm:27"],
+      "detail": { "type": "Side", "nullable": false, "default": null, "unique": false }
+    },
+    {
+      "id": "DB-C7-7",
+      "kind": "column",
+      "name": "cloister",
+      "description": "SideId of the Cloister feature on this tile, if any (2 of the 24 tileset tiles carry one); the only nullable-equivalent field in the Game state.",
+      "code_ref": ["src/Types/Tile.elm:28", "src/Helpers/TileMapper.elm:49", "src/Helpers/TileMapper.elm:59"],
+      "detail": { "type": "Maybe SideId", "nullable": true, "default": "Nothing for most tiles", "unique": false }
+    },
+    {
+      "id": "DB-C8-1",
+      "kind": "column",
+      "name": "sideId",
+      "description": "Feature id this side belongs to; -1 marks a field-only side not part of a named feature. Ids are renumbered globally on tile placement so connected features share an id.",
+      "code_ref": ["src/Types/Tile.elm:16", "src/Types/Tile.elm:62-81"],
+      "detail": { "type": "SideId (Int)", "nullable": false, "default": null, "unique": false, "constraint": "-1 = field-only side; otherwise globally unique feature id >= nextSideId allocation" }
+    },
+    {
+      "id": "DB-C8-2",
+      "kind": "column",
+      "name": "sideFeature",
+      "description": "The kind of feature this side borders.",
+      "code_ref": ["src/Types/Tile.elm:17"],
+      "detail": { "type": "Feature", "nullable": false, "default": null, "unique": false, "enum_values": ["City", "Road", "Field", "NoFeature"] }
+    },
+    {
+      "id": "DB-C9-1",
+      "kind": "column",
+      "name": "owner",
+      "description": "PlayerIndex of the player who owns this meeple.",
+      "code_ref": ["src/Types/Meeple.elm:18"],
+      "detail": { "type": "PlayerIndex", "nullable": false, "default": null, "unique": false }
+    },
+    {
+      "id": "DB-C9-2",
+      "kind": "column",
+      "name": "coordinates",
+      "description": "Board position of the meeple.",
+      "code_ref": ["src/Types/Meeple.elm:19", "tests/MeepleTests.elm:29"],
+      "detail": { "type": "Coordinate", "nullable": false, "default": null, "unique": false }
+    },
+    {
+      "id": "DB-C9-3",
+      "kind": "column",
+      "name": "position",
+      "description": "Meeple placement position relative to the tile.",
+      "code_ref": ["src/Types/Meeple.elm:20"],
+      "detail": { "type": "MeeplePosition", "nullable": false, "default": null, "unique": false, "enum_values": ["Center", "North", "East", "South", "West", "Skip"] }
+    },
+    {
+      "id": "DB-C13-1",
+      "kind": "column",
+      "name": "score",
+      "description": "Point total (Int).",
+      "code_ref": ["src/Types/Score.elm:4-5"],
+      "detail": { "type": "Int", "nullable": false, "default": "0 at initializeGame", "unique": false }
+    },
+    {
+      "id": "DB-C14-1",
+      "kind": "column",
+      "name": "coordinate pair",
+      "description": "(x, y) grid position.",
+      "code_ref": ["src/Types/Coordinate.elm:4-5"],
+      "detail": { "type": "(Int, Int)", "nullable": false, "default": null, "unique": false }
+    },
+    {
+      "id": "DB-C15-1",
+      "kind": "column",
+      "name": "player index",
+      "description": "0-based turn-order position (Int).",
+      "code_ref": ["src/Types/PlayerIndex.elm:4-5"],
+      "detail": { "type": "Int", "nullable": false, "default": null, "unique": false }
+    },
+    {
+      "id": "DB-C16-1",
+      "kind": "column",
+      "name": "player name",
+      "description": "Unique player name (String).",
+      "code_ref": ["src/Types/PlayerName.elm:4-5"],
+      "detail": { "type": "String", "nullable": false, "default": null, "unique": true }
+    },
+    {
+      "id": "DB-K1",
+      "kind": "key",
+      "name": "TileGrid primary key",
+      "description": "TileGrid is keyed by board Coordinate; each coordinate holds at most one placed tile (Dict uniqueness).",
+      "code_ref": ["src/Types/Game.elm:20-21", "src/Helpers/GameLogic.elm:350"],
+      "detail": { "columns": ["DB-C14-1"], "unique": true, "composite": true, "fts": false }
+    },
+    {
+      "id": "DB-K2",
+      "kind": "key",
+      "name": "PlayerScores primary key",
+      "description": "Scores keyed by PlayerName; one Score row per player.",
+      "code_ref": ["src/Types/Game.elm:16-17"],
+      "detail": { "columns": ["DB-C16-1"], "unique": true, "composite": false, "fts": false }
+    },
+    {
+      "id": "DB-K3",
+      "kind": "key",
+      "name": "Meeples primary key",
+      "description": "Meeple groups keyed by feature SideId; one feature id maps to its (0..N) meeples.",
+      "code_ref": ["src/Types/Game.elm:24-25", "src/Helpers/GameLogic.elm:401-413"],
+      "detail": { "columns": ["DB-C8-1"], "unique": true, "composite": false, "fts": false }
+    },
+    {
+      "id": "DB-K4",
+      "kind": "key",
+      "name": "playerMeeples primary key",
+      "description": "Remaining-meeple counts keyed by PlayerName.",
+      "code_ref": ["src/Types/Game.elm:30", "src/Helpers/GameLogic.elm:480"],
+      "detail": { "columns": ["DB-C16-1"], "unique": true, "composite": false, "fts": false }
+    },
+    {
+      "id": "DB-K5",
+      "kind": "key",
+      "name": "players turn-order key",
+      "description": "Player identity in Game is positional: the Array index (PlayerIndex, 0..4) selects a player; currentPlayer is an index into it. The name string remains the cross-record identifier.",
+      "code_ref": ["src/Types/Game.elm:31-32", "src/Types/Game.elm:43-45", "src/Backend.elm:110"],
+      "detail": { "columns": ["DB-C15-1", "DB-C16-1"], "unique": true, "composite": true, "fts": false }
+    },
+    {
+      "id": "DB-K6",
+      "kind": "key",
+      "name": "Tile natural key",
+      "description": "TileId (0..23) identifies the immutable tileset definition; getTile falls back to tile 0 for unknown ids, so every TileId is resolvable.",
+      "code_ref": ["src/Types/Tile.elm:22", "src/Helpers/TileMapper.elm:9-12", "src/Helpers/TileMapper.elm:252-253"],
+      "detail": { "columns": ["DB-C7-1"], "unique": true, "composite": false, "fts": false }
+    },
+    {
+      "id": "DB-K7",
+      "kind": "key",
+      "name": "PlayerName lobby key",
+      "description": "PlayerName is the lobby-level identity; registration rejects duplicates via List.member, and Kick targets a name.",
+      "code_ref": ["src/Backend.elm:95-101", "src/Backend.elm:125-133"],
+      "detail": { "columns": ["DB-C16-1"], "unique": true, "composite": false, "fts": false }
+    },
+    {
+      "id": "DB-I1",
+      "kind": "index",
+      "name": "tileGrid lookup index",
+      "description": "Dict Coordinate -> Tile supports O(log n) point lookups used for neighbor adjacency checks (8-neighborhood), last-placed-tile retrieval, and feature-connectivity scans.",
+      "code_ref": ["src/Helpers/GameLogic.elm:198-201", "src/Helpers/GameLogic.elm:232-240", "src/Helpers/GameLogic.elm:333-350", "src/Types/Game.elm:89-94"],
+      "detail": { "columns": ["DB-C14-1"], "unique": true, "composite": true, "fts": false, "structure": "Elm Dict (RBTree)" }
+    },
+    {
+      "id": "DB-I2",
+      "kind": "index",
+      "name": "meeples lookup index",
+      "description": "Dict SideId -> List Meeple supports feature-owner queries (getFeatureOwners) and meeple insert/removal on the last-placed tile's feature ids.",
+      "code_ref": ["src/Helpers/GameLogic.elm:256-262", "src/Helpers/GameLogic.elm:401-413", "tests/MeepleTests.elm:14-70"],
+      "detail": { "columns": ["DB-C8-1"], "unique": true, "composite": false, "fts": false, "structure": "Elm Dict (RBTree)" }
+    },
+    {
+      "id": "DB-I3",
+      "kind": "index",
+      "name": "meepleColorDictionary lookup",
+      "description": "Static (non-persisted) Dict PlayerIndex -> color name (0..4: red/blue/green/yellow/black) used to pick a meeple image; constant data, not part of the state record.",
+      "code_ref": ["src/Types/Meeple.elm:26-42"],
+      "detail": { "columns": ["DB-C15-1"], "unique": true, "composite": false, "fts": false, "structure": "Elm Dict (RBTree)", "persisted": false },
+      "unverified": null
+    },
+    {
+      "id": "DB-R1",
+      "kind": "relationship",
+      "name": "BackendModel owns Game",
+      "description": "The BeGamePlayed variant holds exactly one active Game; BePlayerRegistration holds none. Composition: the Game exists only inside the backend model.",
+      "code_ref": ["src/Types.elm:11-17"],
+      "detail": { "from": "DB-T1", "to": "DB-T3", "cardinality": "1:1 (max)", "fk_column": "BackendModel(BeGamePlayed).game", "on_delete": null, "junction": null }
+    },
+    {
+      "id": "DB-R2",
+      "kind": "relationship",
+      "name": "BackendModel holds lobby players",
+      "description": "BePlayerRegistration.players is the lobby roster; capped at playerLimit (5) with LobbyIsFull on overflow.",
+      "code_ref": ["src/Types.elm:12-14", "src/Backend.elm:110-118"],
+      "detail": { "from": "DB-T1", "to": "DB-T16", "cardinality": "1:N (0..5)", "fk_column": "BackendModel(BePlayerRegistration).players", "on_delete": null, "junction": null }
+    },
+    {
+      "id": "DB-R3",
+      "kind": "relationship",
+      "name": "FrontendModel mirrors Game",
+      "description": "The FeGamePlayed variant mirrors the backend Game for the session (broadcasts of GameInitialized/UpdateGameState replace it).",
+      "code_ref": ["src/Types.elm:29-33", "src/Types.elm:77-82"],
+      "detail": { "from": "DB-T2", "to": "DB-T3", "cardinality": "1:1 (max)", "fk_column": "FrontendModel(FeGamePlayed).game", "on_delete": null, "junction": null }
+    },
+    {
+      "id": "DB-R4",
+      "kind": "relationship",
+      "name": "FrontendModel holds lobby players",
+      "description": "FeLobby.players mirrors the lobby roster for the session.",
+      "code_ref": ["src/Types.elm:25-28", "src/Types.elm:68-70"],
+      "detail": { "from": "DB-T2", "to": "DB-T16", "cardinality": "1:N (0..5)", "fk_column": "FrontendModel(FeLobby).players", "on_delete": null, "junction": null }
+    },
+    {
+      "id": "DB-R5",
+      "kind": "relationship",
+      "name": "Game aggregates placed Tiles (via TileGrid)",
+      "description": "Game.tileGrid maps each Coordinate to a Tile; one tile per coordinate, growing over the game.",
+      "code_ref": ["src/Types/Game.elm:38", "src/Types/Game.elm:20-21"],
+      "detail": { "from": "DB-T3", "to": "DB-T7", "cardinality": "1:N", "fk_column": "Game.tileGrid", "on_delete": null, "junction": "DB-T4" }
+    },
+    {
+      "id": "DB-R6",
+      "kind": "relationship",
+      "name": "Game aggregates Meeples (via Meeples dict)",
+      "description": "Game.meeples maps each feature SideId to its 0..N Meeple list; total meeple count is bounded by 7 x number of players.",
+      "code_ref": ["src/Types/Game.elm:39", "src/Types/Game.elm:24-25"],
+      "detail": { "from": "DB-T3", "to": "DB-T9", "cardinality": "1:N", "fk_column": "Game.meeples", "on_delete": null, "junction": "DB-T6" }
+    },
+    {
+      "id": "DB-R7",
+      "kind": "relationship",
+      "name": "Game holds one Score per player",
+      "description": "Game.playerScores maps each PlayerName to a Score.",
+      "code_ref": ["src/Types/Game.elm:29", "src/Types/Game.elm:16-17"],
+      "detail": { "from": "DB-T3", "to": "DB-T13", "cardinality": "1:N", "fk_column": "Game.playerScores", "on_delete": null, "junction": "DB-T5" }
+    },
+    {
+      "id": "DB-R8",
+      "kind": "relationship",
+      "name": "Game references players",
+      "description": "Game.players is the ordered roster (1..5) that currentPlayer indexes into.",
+      "code_ref": ["src/Types/Game.elm:31", "src/Types/Game.elm:78-84"],
+      "detail": { "from": "DB-T3", "to": "DB-T16", "cardinality": "1:N (1..5)", "fk_column": "Game.players", "on_delete": null, "junction": null }
+    },
+    {
+      "id": "DB-R9",
+      "kind": "relationship",
+      "name": "Game holds the tile to place",
+      "description": "Game.tileToPlace is the next drawn tile awaiting placement/rotation.",
+      "code_ref": ["src/Types/Game.elm:33"],
+      "detail": { "from": "DB-T3", "to": "DB-T7", "cardinality": "1:1", "fk_column": "Game.tileToPlace", "on_delete": null, "junction": null }
+    },
+    {
+      "id": "DB-R10",
+      "kind": "relationship",
+      "name": "Game has a phase",
+      "description": "Game.gameState selects the current phase.",
+      "code_ref": ["src/Types/Game.elm:34"],
+      "detail": { "from": "DB-T3", "to": "DB-T11", "cardinality": "1:1", "fk_column": "Game.gameState", "on_delete": null, "junction": null }
+    },
+    {
+      "id": "DB-R11",
+      "kind": "relationship",
+      "name": "Game tracks last placed tile position",
+      "description": "Game.lastPlacedTile points into the TileGrid at the most recent placement.",
+      "code_ref": ["src/Types/Game.elm:35", "src/Types/Game.elm:87-94"],
+      "detail": { "from": "DB-T3", "to": "DB-T14", "cardinality": "1:1", "fk_column": "Game.lastPlacedTile", "on_delete": null, "junction": null }
+    },
+    {
+      "id": "DB-R12",
+      "kind": "relationship",
+      "name": "Game tracks current turn",
+      "description": "Game.currentPlayer is a PlayerIndex into Game.players.",
+      "code_ref": ["src/Types/Game.elm:32"],
+      "detail": { "from": "DB-T3", "to": "DB-T15", "cardinality": "1:1", "fk_column": "Game.currentPlayer", "on_delete": null, "junction": null }
+    },
+    {
+      "id": "DB-R13",
+      "kind": "relationship",
+      "name": "Tile composes four Sides",
+      "description": "Each tile has exactly four named sides (north/east/south/west); rotation permutes them rather than reordering storage.",
+      "code_ref": ["src/Types/Tile.elm:24-27", "src/Helpers/GameLogic.elm:24-40"],
+      "detail": { "from": "DB-T7", "to": "DB-T8", "cardinality": "1:4", "fk_column": "Tile.north|east|south|west", "on_delete": null, "junction": null }
+    },
+    {
+      "id": "DB-R14",
+      "kind": "relationship",
+      "name": "Tile optionally references a Cloister feature",
+      "description": "Tile.cloister is Maybe SideId: 0..1 cloister feature per tile (tileset tiles 3 and 4 have cloister=Just 0).",
+      "code_ref": ["src/Types/Tile.elm:28", "src/Helpers/TileMapper.elm:49", "src/Helpers/TileMapper.elm:59"],
+      "detail": { "from": "DB-T7", "to": "DB-T8", "cardinality": "0..1", "fk_column": "Tile.cloister", "on_delete": null, "junction": null }
+    },
+    {
+      "id": "DB-R15",
+      "kind": "relationship",
+      "name": "Side belongs to a Feature kind",
+      "description": "Side.sideFeature classifies the feature the side borders; sideId groups sides into the same connected feature.",
+      "code_ref": ["src/Types/Tile.elm:16-17"],
+      "detail": { "from": "DB-T8", "to": "DB-T10", "cardinality": "1:1", "fk_column": "Side.sideFeature", "on_delete": null, "junction": null }
+    },
+    {
+      "id": "DB-R16",
+      "kind": "relationship",
+      "name": "Feature (SideId) groups Meeples",
+      "description": "The Meeples dict groups 0..N meeples under the SideId of the feature they occupy; getFeatureOwners reports distinct owners per feature id.",
+      "code_ref": ["src/Types/Game.elm:24-25", "src/Helpers/GameLogic.elm:256-262"],
+      "detail": { "from": "DB-T8", "to": "DB-T9", "cardinality": "1:N", "fk_column": "Meeples key (SideId)", "on_delete": null, "junction": "DB-T6" }
+    },
+    {
+      "id": "DB-R17",
+      "kind": "relationship",
+      "name": "Meeple has a position",
+      "description": "Meeple.position is its placement relative to a tile.",
+      "code_ref": ["src/Types/Meeple.elm:20"],
+      "detail": { "from": "DB-T9", "to": "DB-T12", "cardinality": "1:1", "fk_column": "Meeple.position", "on_delete": null, "junction": null }
+    },
+    {
+      "id": "DB-R18",
+      "kind": "relationship",
+      "name": "Meeple sits at a Coordinate",
+      "description": "Meeple.coordinates is its board position.",
+      "code_ref": ["src/Types/Meeple.elm:19"],
+      "detail": { "from": "DB-T9", "to": "DB-T14", "cardinality": "1:1", "fk_column": "Meeple.coordinates", "on_delete": null, "junction": null }
+    },
+    {
+      "id": "DB-R19",
+      "kind": "relationship",
+      "name": "Meeple owned by a player",
+      "description": "Meeple.owner is the PlayerIndex of its owner; each player starts with 7 meeples (playerMeeples).",
+      "code_ref": ["src/Types/Meeple.elm:18", "src/Types/Game.elm:61"],
+      "detail": { "from": "DB-T9", "to": "DB-T15", "cardinality": "1:1 (owner side)", "fk_column": "Meeple.owner", "on_delete": null, "junction": null }
+    },
+    {
+      "id": "DB-S1",
+      "kind": "seed",
+      "name": "Tileset (24 unique tiles)",
+      "description": "Hand-written tileset data: getTile defines tile ids 0..23 (each with 4 sides and optional cloister); unknown ids fall back to tile 0. This is the immutable reference data behind every Tile instance.",
+      "code_ref": ["src/Helpers/TileMapper.elm:9-253"],
+      "detail": { "purpose": "immutable tile definition lookup (tileId -> Tile)", "counts": "24 defined tiles (ids 0-23); 2 carry a cloister (ids 3, 4)" }
+    },
+    {
+      "id": "DB-S2",
+      "kind": "seed",
+      "name": "Tile draw stack composition",
+      "description": "initializeDrawStack builds the 71-tile shuffled pool: 3x tile0, 9x tile1, 8x tile2, 4x tile3, 2x tile4, 1x tile5, 3x tile6, 1x tile7, 1x tile8, 2x tile9, 3x tile10, 5x tile11, 3x tile12, 2x tile13, 2x tile14, 1x tile15, 2x tile16, 3x tile17, 2x tile18, 3x tile19, 3x tile20, 3x tile21, 4x tile22, 1x tile23. Shuffled via Random.List.shuffle at game start and after each meeple placement.",
+      "code_ref": ["src/Types/Game.elm:120-147", "src/Backend.elm:147", "src/Backend.elm:177"],
+      "detail": { "purpose": "initial shuffled tile pool for a game", "counts": "71 tile instances across 24 unique tile ids" }
+    },
+    {
+      "id": "DB-S3",
+      "kind": "seed",
+      "name": "Starting tile grid",
+      "description": "The board starts with a single tile: the center Cloister (tile id 0) at coordinate (0,0).",
+      "code_ref": ["src/Types/Game.elm:102-104"],
+      "detail": { "purpose": "initial TileGrid state", "counts": "1 tile at (0,0)" }
+    },
+    {
+      "id": "DB-S4",
+      "kind": "seed",
+      "name": "initializeGame defaults",
+      "description": "Fresh game state: 0 score and 7 meeples per player, currentPlayer 0, phase PlaceTileState, lastPlacedTile (0,0), nextSideId from grid max, empty meeples dict; tileToPlace is a getTile 0 placeholder replaced by the first random draw.",
+      "code_ref": ["src/Types/Game.elm:53-73", "src/Backend.elm:44-59"],
+      "detail": { "purpose": "initial Game record per new game", "counts": "7 meeples/player, 0 score/player" }
+    },
+    {
+      "id": "DB-S5",
+      "kind": "seed",
+      "name": "Backend initial state",
+      "description": "The backend starts in the lobby: BePlayerRegistration with an empty player list.",
+      "code_ref": ["src/Backend.elm:28-34"],
+      "detail": { "purpose": "backend process init state", "counts": "0 players" }
+    },
+    {
+      "id": "DB-S6",
+      "kind": "seed",
+      "name": "Meeple color table",
+      "description": "Static player-index-to-color mapping (0=red, 1=blue, 2=green, 3=yellow, 4=black; unknown -> black) used for meeple image rendering.",
+      "code_ref": ["src/Types/Meeple.elm:26-42"],
+      "detail": { "purpose": "display constant for meeple rendering", "counts": "5 entries (one per allowed player index)" }
+    },
+    {
+      "id": "DB-M1",
+      "kind": "migration",
+      "name": "V1 snapshot (lobby only)",
+      "description": "Historical state shape at Evergreen version 1: only the player lobby existed (FePlayerRegistration/FeLobby on the frontend; BePlayerRegistration on the backend). No Game/Tile/Feature/GameState types; BackendMsg was only ClientConnected + NoOpBackendMsg; ToFrontend carried lobby updates only.",
+      "code_ref": ["src/Evergreen/V1/Types.elm:7-49", "src/Evergreen/V1/Types/PlayerName.elm:4-5"],
+      "detail": { "direction": "baseline", "snapshot": "src/Evergreen/V1/", "data_migration": null }
+    },
+    {
+      "id": "DB-M2",
+      "kind": "migration",
+      "name": "V1 -> V3 (ModelReset)",
+      "description": "Compiler-generated migration that resets both models (ModelReset) and ignores all old messages (MsgOldValueIgnored for all 6 Lamdera core types) — no data was carried over from V1. The V3 snapshot added the entire game domain: Game/Tile/Side/Feature/GameState types, FeGamePlayed and BeGamePlayed model variants, ToBackend InitializeGame/RotateTileLeft/PlaceTile, and ToFrontend GameInitialized/UpdateGameState.",
+      "code_ref": ["src/Evergreen/Migrate/V3.elm:27-54", "src/Evergreen/V3/Types.elm:17-29", "src/Evergreen/V3/Types.elm:47-48", "src/Evergreen/V3/Types.elm:64-69", "src/Evergreen/V3/Types/Game.elm:30-41", "src/Evergreen/V3/Types/Tile.elm:20-28"],
+      "detail": { "direction": "V1 -> V3", "snapshot": "src/Evergreen/V3/", "data_migration": "ModelReset (both FrontendModel and BackendModel); MsgOldValueIgnored for FrontendMsg/ToBackend/BackendMsg/ToFrontend" }
+    },
+    {
+      "id": "DB-M3",
+      "kind": "migration",
+      "name": "V3 snapshot (name-based players, Bool cloister)",
+      "description": "Historical Game shape: players as List PlayerName, currentPlayer as PlayerName, lastPlayedTile as Maybe Coordinate, meeples as MeepleGrid (Dict Coordinate Meeple{owner:PlayerName}); Tile carried hasCloister: Bool; GameState = PlaceTile|PlaceMeeple|Finished; Feature = City|Road|Field (no NoFeature).",
+      "code_ref": ["src/Evergreen/V3/Types/Game.elm:21-41", "src/Evergreen/V3/Types/Tile.elm:27", "src/Evergreen/V3/Types/GameState.elm:4-7", "src/Evergreen/V3/Types/Feature.elm:4-7"],
+      "detail": { "direction": "baseline", "snapshot": "src/Evergreen/V3/", "data_migration": null }
+    },
+    {
+      "id": "DB-M4",
+      "kind": "migration",
+      "name": "V3 -> V5 (field-level, ModelUnchanged)",
+      "description": "Compiler-generated migration preserving both models (ModelUnchanged) with field-level mappings: Game (migrate_Types_Game_Game), TileGrid via Dict.map, Tile/Side, Feature, GameState, and the four message types (MsgMigrated). The Game and Tile record shapes are unchanged V3 -> V5; the snapshot diff adds TerminateGame messages: FeTerminateGame, ToBackend TerminateGame, and ToFrontend JoinedGame + GameTerminated.",
+      "code_ref": ["src/Evergreen/Migrate/V5.elm:36-43", "src/Evergreen/Migrate/V5.elm:66-76", "src/Evergreen/Migrate/V5.elm:107-117", "src/Evergreen/Migrate/V5.elm:120-156", "src/Evergreen/V5/Types.elm:39", "src/Evergreen/V5/Types.elm:50", "src/Evergreen/V5/Types.elm:72-75"],
+      "detail": { "direction": "V3 -> V5", "snapshot": "src/Evergreen/V5/", "data_migration": "ModelUnchanged + MsgMigrated (field-by-field: Game, TileGrid, Side, Tile, Feature, GameState, FrontendMsg, ToBackend, ToFrontend)" }
+    },
+    {
+      "id": "DB-M5",
+      "kind": "migration",
+      "name": "V5 snapshot (pre-index players)",
+      "description": "Historical Game shape: identical records to V3 (List players, PlayerName currentPlayer, Maybe lastPlayedTile, MeepleGrid), Tile.hasCloister: Bool, Feature = City|Road|Field, GameState = PlaceTile|PlaceMeeple|Finished.",
+      "code_ref": ["src/Evergreen/V5/Types/Game.elm:30-41", "src/Evergreen/V5/Types/Tile.elm:20-28", "src/Evergreen/V5/Types/GameState.elm:4-7", "src/Evergreen/V5/Types/Feature.elm:4-7"],
+      "detail": { "direction": "baseline", "snapshot": "src/Evergreen/V5/", "data_migration": null }
+    },
+    {
+      "id": "DB-M6",
+      "kind": "migration",
+      "name": "V5 -> V10 (ModelReset; meeple model redesign)",
+      "description": "Compiler-generated migration that resets both models (ModelReset) and ignores all old messages — no V5 game data survived. Snapshot diff V5 -> V10 is the largest redesign: Game.players List -> Array; new playerMeeples (Dict PlayerName Int, 7/player); currentPlayer PlayerName -> PlayerIndex; lastPlayedTile Maybe Coordinate -> lastPlacedTile Coordinate (non-null); meepleGrid Dict Coordinate Meeple{owner:PlayerName} -> meeples Dict SideId (List Meeple{owner:PlayerIndex, coordinates, position}) — meeples now keyed by feature id; Tile.hasCloister Bool -> cloister Maybe SideId; GameState constructors renamed PlaceTile/PlaceMeeple/Finished -> PlaceTileState/PlaceMeepleState/FinishedState; Feature gained NoFeature; new MeeplePosition enum and Score/PlayerIndex/Coordinate value modules; FeGamePlayed gained debugMode; FrontendMsg gained FeKillLobby/ChangeDebugMode/FePlaceMeeple; ToBackend gained KillLobby/PlaceMeeple; BackendMsg NoOpBackendMsg replaced by InitializeGameAndTileDrawStackShuffled/TileDrawStackShuffled; ToFrontend gained LobbyIsFull/LobbyKilled.",
+      "code_ref": ["src/Evergreen/Migrate/V10.elm:36-63", "src/Evergreen/V10/Types/Game.elm:26-38", "src/Evergreen/V10/Types/Tile.elm:27", "src/Evergreen/V10/Types/GameState.elm:4-7", "src/Evergreen/V10/Types/Feature.elm:4-8", "src/Evergreen/V10/Types/Meeple.elm:7-20", "src/Evergreen/V10/Types.elm:22", "src/Evergreen/V10/Types.elm:40-45", "src/Evergreen/V10/Types.elm:54-58", "src/Evergreen/V10/Types.elm:64-65", "src/Evergreen/V10/Types.elm:77-78"],
+      "detail": { "direction": "V5 -> V10", "snapshot": "src/Evergreen/V10/", "data_migration": "ModelReset (both FrontendModel and BackendModel); MsgOldValueIgnored for FrontendMsg/ToBackend/BackendMsg/ToFrontend" }
+    }
+  ],
+  "gaps": [
+    "Exact persistence medium is not verifiable from this repo: there is no lamdera/platform directory or store config; 'the Lamdera platform serializes the backend model across sessions/deploys' is stated in the planner scope note and implied by the Evergreen headers (src/Evergreen/Migrate/V10.elm:3,18) and the lamdera/core + lamdera/codecs dependencies (elm.json:13-14), but the concrete storage backend (Lamdera Cloud vs local) is unverified.",
+    "No security/compliance mechanisms exist in the data layer: no authentication beyond player-name uniqueness (src/Backend.elm:95-101), no authorization rules, no audit log, no encryption-at-rest configuration. PII exposure is limited to free-form player names (PlayerName = String, src/Types/PlayerName.elm:4-5). Absence verified by full-file scan of src/ and tests/.",
+    "Planner scope note claims a '74-tile tileset'; the code defines 24 unique tile definitions (ids 0..23, src/Helpers/TileMapper.elm:9-253) and a 71-entry draw stack (src/Types/Game.elm:120-147). The code's own numbers (24 / 71) are modeled; the '74' figure is unverified.",
+    "The live model (src/Types.elm) has drifted past the latest V10 snapshot without a new snapshot in the repo: NoOpBackendMsg (present in src/Evergreen/V10/Types.elm:66) and ClearError (present in src/Evergreen/V10/Types.elm:47) no longer exist in the current BackendMsg (src/Types.elm:61-64) / FrontendMsg (src/Types.elm:36-47). No V11 migration exists, so these post-V10 deletions are unversioned in the repo.",
+    "on_delete / referential-action semantics are inapplicable: Elm has no database; all 'foreign keys' are value composition with no runtime referential enforcement (e.g. Meeple.owner is an index with no bounds check at the type level).",
+    "Column 'defaults' for the Game record are runtime initializers from initializeGame (src/Types/Game.elm:53-73), not storage-layer defaults; tileToPlace's documented placeholder (getTile 0) is always overwritten by the first shuffled draw (src/Backend.elm:44-59, comment at src/Types/Game.elm:65-66)."
+  ]
+}

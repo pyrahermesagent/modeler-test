@@ -1,0 +1,998 @@
+{
+  "model": "usecases",
+  "repo_name": "Carcassonne",
+  "repo_sha": "ca2797745a863243fa6ce96af63435b0d67bf2ab",
+  "analyst_status": "ok",
+  "generated_by": "02-usecase-analyst",
+  "scope_note": "In scope: the 8 lobby/game use cases driven through the Lamdera ToBackend/ToFrontend message surface (src/Frontend.elm, src/Backend.elm, src/Types.elm, src/Views/, src/Helpers/GameLogic.elm, src/Helpers/FrontendHelpers.elm, src/Types/Game.elm, src/Types/GameState.elm). Out of scope: legacy Evergreen/V1-V10 modules, tile assets, debug-mode internals; unit tests cited only as evidence for isRotatedCorrectly.",
+  "elements": [
+    {
+      "id": "UC-A1",
+      "kind": "actor",
+      "name": "Player (browser)",
+      "description": "Human player operating the Elm frontend in a Lamdera-connected browser. No host/admin role exists in the code: every name in the lobby gets a kick control (src/Views/PlayerLobbyView.elm:30-37), every lobby client gets the Start button (src/Views/PlayerLobbyView.elm:20-23), and the backend handlers carry no sender-identity check (src/Backend.elm:125-133, 140-148). The 'Kill lobby' button is situational, not a role: it is rendered only for the client whose registration was rejected because the lobby is full (src/Views/PlayerRegistrationView.elm:29-37).",
+      "code_ref": [
+        "src/Views/PlayerLobbyView.elm:20-37",
+        "src/Backend.elm:125-133",
+        "src/Views/PlayerRegistrationView.elm:29-37"
+      ],
+      "unverified": null,
+      "detail": {
+        "primary": true,
+        "kind": "human",
+        "roles": ["PLAYER"],
+        "role_note": "No role distinction in code; single PLAYER role. The lobby-killer affordance is situational (client with the 'Lobby is full.' error), not a persistent role."
+      }
+    },
+    {
+      "id": "UC-A2",
+      "kind": "actor",
+      "name": "Lamdera platform",
+      "description": "External server runtime. Delivers ToBackend messages from clients to the backend (src/Frontend.elm:4, src/Types.elm:50-58), broadcasts ToFrontend messages to all connected clients via broadcast (src/Backend.elm:58, 73, 83, 112, 132, 137, 157, 167, 177, 182), sends targeted replies via sendToFrontend (src/Backend.elm:42, 101, 117, 122), executes the backend Random commands (Random.generate Random.List.shuffle) (src/Backend.elm:147, 177), and reports new client connections via Lamdera.onConnect (src/Backend.elm:189-191).",
+      "code_ref": [
+        "src/Backend.elm:6",
+        "src/Backend.elm:147",
+        "src/Backend.elm:177",
+        "src/Backend.elm:189-191",
+        "src/Frontend.elm:4",
+        "src/Types.elm:50-58",
+        "src/Types.elm:67-86"
+      ],
+      "unverified": null,
+      "detail": {
+        "primary": false,
+        "kind": "external_system",
+        "roles": ["BROADCAST_BUS", "RANDOM_EXECUTOR", "CONNECTION_LIFECYCLE"]
+      }
+    },
+    {
+      "id": "UC-01",
+      "kind": "use_case",
+      "name": "Register a player in the lobby",
+      "description": "A new player types a name in the browser and joins the shared lobby; the backend rejects duplicate names, caps the lobby at 5 players, and broadcasts the updated roster to every client.",
+      "code_ref": [
+        "src/Backend.elm:93-118",
+        "src/Views/PlayerRegistrationView.elm:16-26",
+        "src/Frontend.elm:50-62"
+      ],
+      "unverified": null,
+      "detail": {
+        "brief": "Player submits a name in the registration view; the frontend validates non-empty locally, sends RegisterPlayer; the backend deduplicates, enforces the 5-player limit, and broadcasts PlayerRegistrationUpdated.",
+        "primary_actor": "UC-A1",
+        "secondary_actors": ["UC-A2"],
+        "preconditions": [
+          {
+            "text": "Backend is in the lobby phase (BePlayerRegistration).",
+            "code_ref": ["src/Types.elm:11-14", "src/Backend.elm:28-34"]
+          },
+          {
+            "text": "The player's browser is connected to the Lamdera app (connection subscription registered).",
+            "code_ref": ["src/Backend.elm:189-191"]
+          }
+        ],
+        "postconditions": [
+          {
+            "text": "The new name is in the lobby list (when accepted) and every client received PlayerRegistrationUpdated.",
+            "code_ref": ["src/Backend.elm:110-113"]
+          },
+          {
+            "text": "The registering client's frontend moved from FePlayerRegistration to FeLobby.",
+            "code_ref": ["src/Frontend.elm:60-61"]
+          }
+        ],
+        "main_flow": [
+          {
+            "id": "UC-01-S1",
+            "lane": "actor",
+            "text": "Player types a name into the registration text field.",
+            "code_ref": ["src/Views/PlayerRegistrationView.elm:17-24"]
+          },
+          {
+            "id": "UC-01-S2",
+            "lane": "frontend",
+            "text": "Frontend stores each keystroke in nameInput and clears any previous error.",
+            "code_ref": ["src/Frontend.elm:47-48"]
+          },
+          {
+            "id": "UC-01-S3",
+            "lane": "actor",
+            "text": "Player clicks the 'Join' button (or submits the form).",
+            "code_ref": ["src/Views/PlayerRegistrationView.elm:16", "src/Views/PlayerRegistrationView.elm:25-28"]
+          },
+          {
+            "id": "UC-01-S4",
+            "lane": "frontend",
+            "text": "Frontend trims the name; if non-empty it switches its own model to FeLobby and sends RegisterPlayer to the backend.",
+            "code_ref": ["src/Frontend.elm:50-62"]
+          },
+          {
+            "id": "UC-01-S5",
+            "lane": "backend",
+            "text": "Backend checks List.member for a duplicate name; if new, it prepends the name to the players list.",
+            "code_ref": ["src/Backend.elm:95-108"]
+          },
+          {
+            "id": "UC-01-S6",
+            "lane": "external",
+            "text": "Backend broadcasts PlayerRegistrationUpdated with the full roster to all connected clients.",
+            "code_ref": ["src/Backend.elm:111-113", "src/Types.elm:68-70"]
+          },
+          {
+            "id": "UC-01-S7",
+            "lane": "frontend",
+            "text": "Every client in the lobby view refreshes its displayed player list from the broadcast.",
+            "code_ref": ["src/Frontend.elm:95-96", "src/Views/PlayerLobbyView.elm:18-19"]
+          }
+        ],
+        "alternatives": [],
+        "exceptions": [
+          {
+            "id": "UC-01-E1",
+            "at_step": "UC-01-S4",
+            "lane": "frontend",
+            "text": "Name is empty after trimming: frontend shows the error 'Name cannot be empty.' and does not contact the backend.",
+            "code_ref": ["src/Frontend.elm:56-57", "src/Views/PlayerRegistrationView.elm:40-45"]
+          },
+          {
+            "id": "UC-01-E2",
+            "at_step": "UC-01-S5",
+            "lane": "backend",
+            "text": "Name already exists in the lobby: backend keeps the model unchanged and replies with the existing roster; the registering client stays in its lobby view but its own name is absent from the roster and no error message is displayed (lobby view has no error surface), so the duplicate registration is silently rejected.",
+            "code_ref": ["src/Backend.elm:99-102", "src/Frontend.elm:95-96", "src/Views/PlayerLobbyView.elm:11-24"]
+          },
+          {
+            "id": "UC-01-E3",
+            "at_step": "UC-01-S5",
+            "lane": "backend",
+            "text": "Lobby already holds playerLimit (5) players: backend rejects the addition and sends LobbyIsFull to the registering client only; the frontend shows 'Lobby is full.' and offers a 'Kill lobby' button.",
+            "code_ref": ["src/Backend.elm:110-118", "src/Types/Game.elm:43-45", "src/Frontend.elm:107-115", "src/Views/PlayerRegistrationView.elm:29-37"]
+          }
+        ],
+        "special_requirements": [
+          {
+            "text": "Lobby capacity is exactly 5 players (playerLimit = 5).",
+            "code_ref": ["src/Types/Game.elm:43-45", "src/Backend.elm:110"]
+          },
+          {
+            "text": "PlayerName is a plain String; the only server-side validation is duplicate rejection, there is no length/format validation.",
+            "code_ref": ["src/Types/PlayerName.elm:4-5", "src/Backend.elm:95-98"]
+          },
+          {
+            "text": "The client switches to the lobby view optimistically before the backend accepts; a rejected client still renders the lobby (see UC-01-E2, UC-03-A1).",
+            "code_ref": ["src/Frontend.elm:60-61", "src/Frontend.elm:165-166"]
+          }
+        ]
+      }
+    },
+    {
+      "id": "UC-02",
+      "kind": "use_case",
+      "name": "Kick a player from the lobby",
+      "description": "A player in the lobby removes another player (or themselves) from the lobby list; the backend filters the name out and broadcasts PlayerKicked; the kicked client is reset to the registration screen.",
+      "code_ref": [
+        "src/Backend.elm:125-133",
+        "src/Views/PlayerLobbyView.elm:30-37",
+        "src/Frontend.elm:98-105"
+      ],
+      "unverified": null,
+      "detail": {
+        "brief": "Clicking the red 'kick' label next to any name sends KickPlayer; the backend removes the name and broadcasts; the kicked client returns to the registration form.",
+        "primary_actor": "UC-A1",
+        "secondary_actors": ["UC-A2"],
+        "preconditions": [
+          {
+            "text": "Backend is in the lobby phase (BePlayerRegistration) and the acting client has the lobby view rendered.",
+            "code_ref": ["src/Types.elm:11-14", "src/Frontend.elm:165-166"]
+          }
+        ],
+        "postconditions": [
+          {
+            "text": "The kicked name is removed from the lobby list and all clients received PlayerKicked with the updated roster.",
+            "code_ref": ["src/Backend.elm:129-133", "src/Types.elm:71-74"]
+          },
+          {
+            "text": "The kicked client's frontend reset to the registration init state (name input cleared, no error).",
+            "code_ref": ["src/Frontend.elm:98-100", "src/Frontend.elm:34-41"]
+          }
+        ],
+        "main_flow": [
+          {
+            "id": "UC-02-S1",
+            "lane": "actor",
+            "text": "A player clicks the red 'kick' label next to a name in the lobby roster.",
+            "code_ref": ["src/Views/PlayerLobbyView.elm:30-37"]
+          },
+          {
+            "id": "UC-02-S2",
+            "lane": "frontend",
+            "text": "Frontend sends KickPlayer <name> to the backend with no local model change.",
+            "code_ref": ["src/Frontend.elm:64-65"]
+          },
+          {
+            "id": "UC-02-S3",
+            "lane": "backend",
+            "text": "Backend filters the name out of the players list.",
+            "code_ref": ["src/Backend.elm:125-130"]
+          },
+          {
+            "id": "UC-02-S4",
+            "lane": "external",
+            "text": "Backend broadcasts PlayerKicked {kickedPlayer, players} to all connected clients.",
+            "code_ref": ["src/Backend.elm:132", "src/Types.elm:71-74"]
+          },
+          {
+            "id": "UC-02-S5",
+            "lane": "frontend",
+            "text": "Clients whose local playerName differs from kickedPlayer update their roster; the kicked client resets to the registration init state.",
+            "code_ref": ["src/Frontend.elm:98-105"]
+          }
+        ],
+        "alternatives": [
+          {
+            "id": "UC-02-A1",
+            "at_step": "UC-02-S1",
+            "lane": "actor",
+            "text": "A player clicks 'kick' on their own name to leave the lobby: the roster control is rendered for every name including one's own, so self-kick is the only way a player exits the lobby on their own.",
+            "code_ref": ["src/Views/PlayerLobbyView.elm:30-37", "src/Frontend.elm:98-100"]
+          }
+        ],
+        "exceptions": [
+          {
+            "id": "UC-02-E1",
+            "at_step": "UC-02-S3",
+            "lane": "backend",
+            "text": "KickPlayer for a name not present in the lobby is a no-op: List.filter removes nothing, the model is unchanged and the unchanged roster is still broadcast.",
+            "code_ref": ["src/Backend.elm:125-133"]
+          }
+        ],
+        "special_requirements": [
+          {
+            "text": "No server-side check that the sender is a lobby member or that the target differs from the sender; any connected client can kick any name.",
+            "code_ref": ["src/Backend.elm:125-133"]
+          },
+          {
+            "text": "Kicking discards all lobby client state for the kicked player (FeLobby -> init, name input reset).",
+            "code_ref": ["src/Frontend.elm:98-100", "src/Frontend.elm:34-41"]
+          }
+        ]
+      }
+    },
+    {
+      "id": "UC-03",
+      "kind": "use_case",
+      "name": "Start a new game",
+      "description": "A player in the lobby clicks Start; the backend builds a new Game from the lobby roster, shuffles the 71-tile draw stack via a Lamdera Random command, picks the first placeable tile, and broadcasts GameInitialized to all clients.",
+      "code_ref": [
+        "src/Backend.elm:140-148",
+        "src/Types/Game.elm:53-73",
+        "src/Views/PlayerLobbyView.elm:20-23"
+      ],
+      "unverified": null,
+      "detail": {
+        "brief": "Start button sends InitializeGame; backend runs initializeGame, issues Random.List.shuffle, resolves the first playable tile from the shuffled stack (getPlayableTileFromDrawstack), and broadcasts GameInitialized; every lobby client switches to the game view.",
+        "primary_actor": "UC-A1",
+        "secondary_actors": ["UC-A2"],
+        "preconditions": [
+          {
+            "text": "Backend is in the lobby phase (BePlayerRegistration) with a non-empty roster; initializeGame documents that the players list must not be empty.",
+            "code_ref": ["src/Types.elm:11-14", "src/Types/Game.elm:48-52"]
+          }
+        ],
+        "postconditions": [
+          {
+            "text": "Backend model is BeGamePlayed holding the new Game (all clients share it).",
+            "code_ref": ["src/Backend.elm:146", "src/Types.elm:15-17"]
+          },
+          {
+            "text": "Every client switched to FeGamePlayed and renders the board in PlaceTileState with the shuffled first tile to place.",
+            "code_ref": ["src/Frontend.elm:134-141", "src/Views/GameView.elm:28-29"]
+          }
+        ],
+        "main_flow": [
+          {
+            "id": "UC-03-S1",
+            "lane": "actor",
+            "text": "A player in the lobby clicks the 'Start' button.",
+            "code_ref": ["src/Views/PlayerLobbyView.elm:20-23"]
+          },
+          {
+            "id": "UC-03-S2",
+            "lane": "frontend",
+            "text": "Frontend sends InitializeGame to the backend.",
+            "code_ref": ["src/Frontend.elm:67-68"]
+          },
+          {
+            "id": "UC-03-S3",
+            "lane": "backend",
+            "text": "Backend builds the new game via initializeGame: zeroed scores, 7 meeples per player, players array, currentPlayer 0, starting tile (0,0), PlaceTileState, full draw stack.",
+            "code_ref": ["src/Backend.elm:140-144", "src/Types/Game.elm:53-73", "src/Types/Game.elm:102-104"]
+          },
+          {
+            "id": "UC-03-S4",
+            "lane": "backend",
+            "text": "Backend issues a Random command to shuffle the draw stack (Random.List.shuffle).",
+            "code_ref": ["src/Backend.elm:147"]
+          },
+          {
+            "id": "UC-03-S5",
+            "lane": "external",
+            "text": "Lamdera executes the shuffle and delivers the result to the backend as InitializeGameAndTileDrawStackShuffled.",
+            "code_ref": ["src/Types.elm:63", "src/Backend.elm:44"]
+          },
+          {
+            "id": "UC-03-S6",
+            "lane": "backend",
+            "text": "Backend walks the shuffled stack with getPlayableTileFromDrawstack, skipping tiles that fit nowhere (in any rotation), and sets the first playable tile as tileToPlace.",
+            "code_ref": ["src/Backend.elm:46-54", "src/Helpers/FrontendHelpers.elm:132-143", "src/Helpers/FrontendHelpers.elm:120-127"]
+          },
+          {
+            "id": "UC-03-S7",
+            "lane": "external",
+            "text": "Backend broadcasts GameInitialized {game} to all connected clients.",
+            "code_ref": ["src/Backend.elm:58", "src/Types.elm:77-79"]
+          },
+          {
+            "id": "UC-03-S8",
+            "lane": "frontend",
+            "text": "Each client in the lobby view switches to FeGamePlayed and renders the game board (tile grid, sidebar with scores/meeples, drawn tile, Rotate button).",
+            "code_ref": ["src/Frontend.elm:134-141", "src/Views/GameView.elm:21-27", "src/Views/GameView.elm:641-749"]
+          }
+        ],
+        "alternatives": [
+          {
+            "id": "UC-03-A1",
+            "at_step": "UC-03-S1",
+            "lane": "actor",
+            "text": "Any client holding the lobby view can start the game, including a client whose registration was just rejected (the frontend switched to FeLobby optimistically); the backend applies InitializeGame to the stored roster with no sender check, so the rejected client is not a game player but can trigger the start.",
+            "code_ref": ["src/Views/PlayerLobbyView.elm:20-23", "src/Frontend.elm:60-62", "src/Backend.elm:140-144"]
+          }
+        ],
+        "exceptions": [
+          {
+            "id": "UC-03-E1",
+            "at_step": "UC-03-S6",
+            "lane": "backend",
+            "text": "If no tile in the shuffled stack is placeable anywhere (cannot happen with the fresh 71-tile stack; the code comments 'First move should be always possible'), tileToPlace falls back to tile 0 via Maybe.withDefault and the draw stack is emptied.",
+            "code_ref": ["src/Backend.elm:46-54", "src/Helpers/FrontendHelpers.elm:142-143"]
+          }
+        ],
+        "special_requirements": [
+          {
+            "text": "Each player starts with 7 meeples.",
+            "code_ref": ["src/Types/Game.elm:61"]
+          },
+          {
+            "text": "Tile set is 71 tiles in the draw stack plus 1 starting tile (72 total).",
+            "code_ref": ["src/Types/Game.elm:120-147", "src/Types/Game.elm:102-104"]
+          },
+          {
+            "text": "Unplaceable tiles are consumed from the stack in shuffled order without re-shuffling; the stack is only re-shuffled after each meeple placement.",
+            "code_ref": ["src/Helpers/FrontendHelpers.elm:134-140", "src/Backend.elm:177"]
+          }
+        ]
+      }
+    },
+    {
+      "id": "UC-04",
+      "kind": "use_case",
+      "name": "Place a tile on the board",
+      "description": "The current-turn player clicks a highlighted empty cell adjacent to the board; the frontend validated the spot locally, the backend merges the tile into the grid with SideId merging for connected features, and the game switches to PlaceMeepleState.",
+      "code_ref": [
+        "src/Helpers/GameLogic.elm:323-370",
+        "src/Helpers/FrontendHelpers.elm:48-110",
+        "src/Views/GameView.elm:327"
+      ],
+      "unverified": null,
+      "detail": {
+        "brief": "Frontend highlights placeable coordinates for the drawn tile; click sends PlaceTile <coordinate>; backend placeTile stamps new SideIds, inserts the tile, merges adjacent SideIds (tiles and meeples), sets PlaceMeepleState and lastPlacedTile; state is broadcast to all clients.",
+        "primary_actor": "UC-A1",
+        "secondary_actors": ["UC-A2"],
+        "preconditions": [
+          {
+            "text": "Game state is PlaceTileState.",
+            "code_ref": ["src/Types/GameState.elm:5", "src/Helpers/GameLogic.elm:507"]
+          },
+          {
+            "text": "The acting player is the current player (game.currentPlayer) — enforced only in the client UI; the backend does not check the sender.",
+            "code_ref": ["src/Views/GameView.elm:58-75", "src/Backend.elm:160-168"]
+          },
+          {
+            "text": "tileToPlace is the drawn tile, guaranteed placeable in some rotation by the draw step.",
+            "code_ref": ["src/Types/Game.elm:33", "src/Helpers/FrontendHelpers.elm:132-143"]
+          }
+        ],
+        "postconditions": [
+          {
+            "text": "The tile occupies the clicked coordinate and connected features across adjacent tiles share a single SideId (tiles and meeple entries updated).",
+            "code_ref": ["src/Helpers/GameLogic.elm:347-362"]
+          },
+          {
+            "text": "GameState is PlaceMeepleState, lastPlacedTile is the clicked coordinate, nextSideId advanced past the tile's maximum side id.",
+            "code_ref": ["src/Helpers/GameLogic.elm:364-370", "src/Types/GameState.elm:6"]
+          },
+          {
+            "text": "All clients received UpdateGameState and re-rendered.",
+            "code_ref": ["src/Backend.elm:166-167", "src/Frontend.elm:143-150"]
+          }
+        ],
+        "main_flow": [
+          {
+            "id": "UC-04-S1",
+            "lane": "frontend",
+            "text": "Frontend computes placeable coordinates for the drawn tile in its current rotation: empty cells adjacent to the board whose shared edge features match (tileCanBePlaced), and renders them as highlighted clickable cells for the current player only.",
+            "code_ref": ["src/Views/GameView.elm:58-75", "src/Helpers/FrontendHelpers.elm:89-110", "src/Helpers/FrontendHelpers.elm:48-84"]
+          },
+          {
+            "id": "UC-04-S2",
+            "lane": "actor",
+            "text": "The current-turn player clicks one of the highlighted cells.",
+            "code_ref": ["src/Views/GameView.elm:318-329"]
+          },
+          {
+            "id": "UC-04-S3",
+            "lane": "frontend",
+            "text": "Frontend sends PlaceTile <coordinate> to the backend.",
+            "code_ref": ["src/Frontend.elm:76-77"]
+          },
+          {
+            "id": "UC-04-S4",
+            "lane": "backend",
+            "text": "Backend stamps the tile's side ids (offset by nextSideId + 1, leaving -1 sides untouched) via updateSideIds.",
+            "code_ref": ["src/Helpers/GameLogic.elm:326-329", "src/Types/Tile.elm:62-81"]
+          },
+          {
+            "id": "UC-04-S5",
+            "lane": "backend",
+            "text": "Backend reads the side ids of the north/east/south/west neighbours, inserts the tile into the grid, and rewrites those neighbour SideIds to the tile's matching edge ids (replaceTileSideId), doing the same merge on the meeples dictionary (replaceMeepleSideId).",
+            "code_ref": ["src/Helpers/GameLogic.elm:331-362", "src/Helpers/GameLogic.elm:102-131", "src/Helpers/GameLogic.elm:136-162"]
+          },
+          {
+            "id": "UC-04-S6",
+            "lane": "backend",
+            "text": "Backend sets gameState to PlaceMeepleState, records lastPlacedTile, and advances nextSideId to the tile's maximum side id.",
+            "code_ref": ["src/Helpers/GameLogic.elm:364-370", "src/Types/Tile.elm:34-37"]
+          },
+          {
+            "id": "UC-04-S7",
+            "lane": "external",
+            "text": "Backend broadcasts UpdateGameState {game} to all connected clients.",
+            "code_ref": ["src/Backend.elm:160-168", "src/Types.elm:80-82"]
+          },
+          {
+            "id": "UC-04-S8",
+            "lane": "frontend",
+            "text": "Each client replaces its game state; the current player now sees the meeple-placement overlay on the last placed tile (UC-06).",
+            "code_ref": ["src/Frontend.elm:143-150", "src/Views/GameView.elm:92-142"]
+          }
+        ],
+        "alternatives": [
+          {
+            "id": "UC-04-A1",
+            "at_step": "UC-04-S1",
+            "lane": "frontend",
+            "text": "If the drawn tile's current rotation has no valid cell, getCoordinatesToBePlacedOn is empty, no cells are highlighted, and the player must rotate the tile (UC-05) back to a placeable orientation before any click is possible.",
+            "code_ref": ["src/Helpers/FrontendHelpers.elm:89-110", "src/Views/GameView.elm:59-70", "src/Views/GameView.elm:318-332"]
+          }
+        ],
+        "exceptions": [
+          {
+            "id": "UC-04-E1",
+            "at_step": "UC-04-S2",
+            "lane": "frontend",
+            "text": "A non-current player cannot place: the placeable overlay (and its clickable cells) is rendered only when the client's playerName equals the current player's name.",
+            "code_ref": ["src/Views/GameView.elm:58-75"]
+          },
+          {
+            "id": "UC-04-E2",
+            "at_step": "UC-04-S4",
+            "lane": "backend",
+            "text": "The backend does not re-validate the move: placeTile documents 'Does not check whether the move is valid', so a crafted or stale PlaceTile message places the tile at any coordinate (Dict.insert overwrites an occupied cell).",
+            "code_ref": ["src/Helpers/GameLogic.elm:311-314", "src/Backend.elm:160-168", "src/Helpers/GameLogic.elm:347-354"]
+          }
+        ],
+        "special_requirements": [
+          {
+            "text": "Move validity is enforced only in the client UI: edge-feature matching in tileCanBePlaced plus rendering of clickable cells only for valid coordinates.",
+            "code_ref": ["src/Helpers/FrontendHelpers.elm:48-84", "src/Views/GameView.elm:320-329"]
+          },
+          {
+            "text": "Feature connectivity is tracked purely by SideId rewriting across the grid; the tile's own sides keep their relative ids.",
+            "code_ref": ["src/Helpers/GameLogic.elm:326-362"]
+          }
+        ]
+      }
+    },
+    {
+      "id": "UC-05",
+      "kind": "use_case",
+      "name": "Rotate the drawn tile",
+      "description": "The player clicks 'Rotate Tile' in the sidebar; the backend rotates tileToPlace 90 degrees counterclockwise (rotation += 90, overflow-guarded at 360000) and broadcasts the new game state.",
+      "code_ref": [
+        "src/Helpers/GameLogic.elm:21-40",
+        "src/Backend.elm:150-158",
+        "src/Views/GameView.elm:740-742"
+      ],
+      "unverified": null,
+      "detail": {
+        "brief": "Rotate button sends RotateTileLeft; backend applies rotateLeft (sides shift counterclockwise, rotation += 90 with a modBy 360 overflow guard) and broadcasts UpdateGameState; the sidebar re-renders the tile with a CSS rotation transform.",
+        "primary_actor": "UC-A1",
+        "secondary_actors": ["UC-A2"],
+        "preconditions": [
+          {
+            "text": "Backend is in the game phase (BeGamePlayed); the RotateTileLeft handler matches that model only.",
+            "code_ref": ["src/Types.elm:15-17", "src/Backend.elm:150"]
+          }
+        ],
+        "postconditions": [
+          {
+            "text": "tileToPlace is rotated 90 degrees counterclockwise (rotation increased by 90, or normalized via modBy 360 after the overflow guard).",
+            "code_ref": ["src/Helpers/GameLogic.elm:21-40"]
+          },
+          {
+            "text": "All clients received UpdateGameState and re-render the board and sidebar tile.",
+            "code_ref": ["src/Backend.elm:156-157", "src/Frontend.elm:143-150"]
+          }
+        ],
+        "main_flow": [
+          {
+            "id": "UC-05-S1",
+            "lane": "actor",
+            "text": "The player clicks the 'Rotate Tile' button in the sidebar.",
+            "code_ref": ["src/Views/GameView.elm:740-742"]
+          },
+          {
+            "id": "UC-05-S2",
+            "lane": "frontend",
+            "text": "Frontend sends RotateTileLeft to the backend.",
+            "code_ref": ["src/Frontend.elm:70-71"]
+          },
+          {
+            "id": "UC-05-S3",
+            "lane": "backend",
+            "text": "Backend applies rotateLeft to tileToPlace: north<-east, west<-north, south<-west, east<-south, and rotation += 90 (with a modBy 360 reset once rotation reaches 360000 or more).",
+            "code_ref": ["src/Backend.elm:150-158", "src/Helpers/GameLogic.elm:21-40"]
+          },
+          {
+            "id": "UC-05-S4",
+            "lane": "external",
+            "text": "Backend broadcasts UpdateGameState {game} to all connected clients.",
+            "code_ref": ["src/Backend.elm:156-157"]
+          },
+          {
+            "id": "UC-05-S5",
+            "lane": "frontend",
+            "text": "Each client re-renders the board and the sidebar tile image using a CSS transform of the negated rotation.",
+            "code_ref": ["src/Frontend.elm:143-150", "src/Views/GameView.elm:727-734"]
+          }
+        ],
+        "alternatives": [
+          {
+            "id": "UC-05-A1",
+            "at_step": "UC-05-S1",
+            "lane": "actor",
+            "text": "Player clicks Rotate during PlaceMeepleState: the backend still rotates the stored tileToPlace, but the sidebar shows only a placeholder image (questionmark.png) and the tile will be replaced by the next drawn tile after the meeple step anyway.",
+            "code_ref": ["src/Views/GameView.elm:727-734", "src/Backend.elm:150-158", "src/Backend.elm:61-74"]
+          }
+        ],
+        "exceptions": [
+          {
+            "id": "UC-05-E1",
+            "at_step": "UC-05-S2",
+            "lane": "backend",
+            "text": "RotateTileLeft received while the backend is in the lobby phase (BePlayerRegistration) matches no handler and is ignored (fallthrough to the no-op case).",
+            "code_ref": ["src/Backend.elm:150", "src/Backend.elm:185-186"]
+          }
+        ],
+        "special_requirements": [
+          {
+            "text": "Overflow guard: once tile.rotation >= 360000 the rotation is normalized with modBy 360 to prevent integer overflow on long games.",
+            "code_ref": ["src/Helpers/GameLogic.elm:23-31"]
+          },
+          {
+            "text": "Rotation is not turn-gated: the button is rendered for every player and the backend applies RotateTileLeft from any client.",
+            "code_ref": ["src/Views/GameView.elm:740-742", "src/Backend.elm:150-158"]
+          },
+          {
+            "text": "isRotatedCorrectly (side-feature consistency per rotation angle) exists but is used only by unit tests, not at runtime.",
+            "code_ref": ["src/Helpers/GameLogic.elm:45-94", "tests/GameLogicTests.elm:14-56"]
+          }
+        ]
+      }
+    },
+    {
+      "id": "UC-06",
+      "kind": "use_case",
+      "name": "Place a meeple or skip",
+      "description": "After a tile is placed, the current player clicks one of the unclaimed position circles on the last placed tile (or the 'Skip Meeple placement' button); the backend claims the feature side, scores finished features, advances the turn, and draws the next tile from the re-shuffled stack.",
+      "code_ref": [
+        "src/Helpers/GameLogic.elm:383-508",
+        "src/Helpers/FrontendHelpers.elm:27-43",
+        "src/Views/GameView.elm:393",
+        "src/Views/GameView.elm:533"
+      ],
+      "unverified": null,
+      "detail": {
+        "brief": "Frontend offers claimable positions on the last placed tile (or only Skip when the player has no meeples left); click sends PlaceMeeple <position>; backend placeMeeple inserts the meeple by SideId (Center maps to the cloister SideId), resolves finished features (scores, majority owners, meeple returns), advances currentPlayer to PlaceTileState; the backend then re-shuffles the draw stack and draws the next placeable tile (or finishes the game).",
+        "primary_actor": "UC-A1",
+        "secondary_actors": ["UC-A2"],
+        "preconditions": [
+          {
+            "text": "Game state is PlaceMeepleState (set by placeTile after every tile placement).",
+            "code_ref": ["src/Types/GameState.elm:6", "src/Helpers/GameLogic.elm:367"]
+          },
+          {
+            "text": "The acting player is the current player — enforced only in the client UI (overlay rendered for the current player only); the backend attributes the meeple to game.currentPlayer regardless of the sender.",
+            "code_ref": ["src/Views/GameView.elm:121-142", "src/Helpers/GameLogic.elm:386-391"]
+          }
+        ],
+        "postconditions": [
+          {
+            "text": "currentPlayer advanced to the next player (wrap-around) and gameState is PlaceTileState.",
+            "code_ref": ["src/Helpers/GameLogic.elm:502-508", "src/Types/Game.elm:78-84"]
+          },
+          {
+            "text": "Finished features on the last placed tile are scored to their majority owners, their SideIds removed from the meeples dict, and meeples returned to owners' pools.",
+            "code_ref": ["src/Helpers/GameLogic.elm:418-500"]
+          },
+          {
+            "text": "A new tileToPlace is drawn from the re-shuffled stack (or the game is finished if the stack is exhausted); all clients received the new state.",
+            "code_ref": ["src/Backend.elm:177", "src/Backend.elm:61-84", "src/Frontend.elm:143-150"]
+          }
+        ],
+        "main_flow": [
+          {
+            "id": "UC-06-S1",
+            "lane": "frontend",
+            "text": "Frontend computes claimable positions on the last placed tile: all sides whose SideId has no meeple yet and is not -1, plus Center when the tile has a cloister; offered only while the player still has meeples, otherwise only Skip. Clickable circles are rendered.",
+            "code_ref": ["src/Views/GameView.elm:121-142", "src/Helpers/FrontendHelpers.elm:27-43", "src/Views/GameView.elm:524-536"]
+          },
+          {
+            "id": "UC-06-S2",
+            "lane": "actor",
+            "text": "The current-turn player clicks one of the position circles.",
+            "code_ref": ["src/Views/GameView.elm:533"]
+          },
+          {
+            "id": "UC-06-S3",
+            "lane": "frontend",
+            "text": "Frontend sends PlaceMeeple <position> to the backend.",
+            "code_ref": ["src/Frontend.elm:79-80"]
+          },
+          {
+            "id": "UC-06-S4",
+            "lane": "backend",
+            "text": "Backend constructs the meeple (owner = currentPlayer, coordinates = lastPlacedTile) and inserts it under the matching SideId: North/East/South/West use the tile's edge SideIds; Center uses the cloister SideId (default -1).",
+            "code_ref": ["src/Helpers/GameLogic.elm:383-413", "src/Types/Meeple.elm:17-23"]
+          },
+          {
+            "id": "UC-06-S5",
+            "lane": "backend",
+            "text": "Backend collects the last placed tile's unique SideIds (incl. cloister), keeps the finished ones (isFeatureFinished), counts each (countFeature), doubles cities with score > 2, and appends finished-cloister scores.",
+            "code_ref": ["src/Helpers/GameLogic.elm:418-438", "src/Types/Tile.elm:42-45", "src/Helpers/GameLogic.elm:193-203", "src/Helpers/GameLogic.elm:170-189"]
+          },
+          {
+            "id": "UC-06-S6",
+            "lane": "backend",
+            "text": "Backend removes the finished SideIds from the meeples dict (returning meeples), adds each finished feature's score to its majority owner(s) (getFeatureOwners), and updates meeple counts: +1 per returned meeple, -1 for the current player when a meeple was actually placed.",
+            "code_ref": ["src/Helpers/GameLogic.elm:440-500", "src/Helpers/GameLogic.elm:256-290"]
+          },
+          {
+            "id": "UC-06-S7",
+            "lane": "backend",
+            "text": "Backend advances currentPlayer via getNextPlayer and sets gameState to PlaceTileState.",
+            "code_ref": ["src/Helpers/GameLogic.elm:502-508", "src/Types/Game.elm:78-84"]
+          },
+          {
+            "id": "UC-06-S8",
+            "lane": "backend",
+            "text": "Backend issues a Random command to re-shuffle the remaining draw stack.",
+            "code_ref": ["src/Backend.elm:177"]
+          },
+          {
+            "id": "UC-06-S9",
+            "lane": "external",
+            "text": "Lamdera delivers the shuffled stack to the backend as TileDrawStackShuffled.",
+            "code_ref": ["src/Types.elm:64", "src/Backend.elm:61"]
+          },
+          {
+            "id": "UC-06-S10",
+            "lane": "backend",
+            "text": "Backend picks the next placeable tile from the stack via getPlayableTileFromDrawstack (skipping unplaceable ones in shuffled order) and sets it as tileToPlace.",
+            "code_ref": ["src/Backend.elm:62-74", "src/Helpers/FrontendHelpers.elm:132-143"]
+          },
+          {
+            "id": "UC-06-S11",
+            "lane": "external",
+            "text": "Backend broadcasts UpdateGameState {game} to all connected clients.",
+            "code_ref": ["src/Backend.elm:72-73"]
+          },
+          {
+            "id": "UC-06-S12",
+            "lane": "frontend",
+            "text": "Each client re-renders the board; the next player sees the tile-placement overlay for the newly drawn tile.",
+            "code_ref": ["src/Frontend.elm:143-150", "src/Views/GameView.elm:58-75"]
+          }
+        ],
+        "alternatives": [
+          {
+            "id": "UC-06-A1",
+            "at_step": "UC-06-S2",
+            "lane": "actor",
+            "text": "Player clicks the 'Skip Meeple placement' button: FePlaceMeeple Skip is sent; placeMeeple leaves the meeples dictionary unchanged for Skip, skips the -1 meeple-count decrement, and otherwise advances the turn and draws exactly like the main flow.",
+            "code_ref": ["src/Views/GameView.elm:382-395", "src/Helpers/GameLogic.elm:415-416", "src/Helpers/GameLogic.elm:493-500"]
+          },
+          {
+            "id": "UC-06-A2",
+            "at_step": "UC-06-S1",
+            "lane": "frontend",
+            "text": "The player has no meeples left (playerMeeples == 0): only [Skip] is offered and no position circles are rendered, so the turn can only be continued by skipping.",
+            "code_ref": ["src/Helpers/FrontendHelpers.elm:29-31", "src/Helpers/FrontendHelpers.elm:42-43"]
+          }
+        ],
+        "exceptions": [
+          {
+            "id": "UC-06-E1",
+            "at_step": "UC-06-S1",
+            "lane": "frontend",
+            "text": "A feature side already occupied by a meeple (or an edge with no feature, SideId == -1) is never offered: positions are filtered by 'no meeple under this SideId' and 'SideId /= -1'; the backend itself does not check, so a crafted PlaceMeeple for an occupied SideId would overwrite that feature's existing meeple list (Dict.insert replaces the value).",
+            "code_ref": ["src/Helpers/FrontendHelpers.elm:32-40", "src/Helpers/GameLogic.elm:400-413"]
+          },
+          {
+            "id": "UC-06-E2",
+            "at_step": "UC-06-S10",
+            "lane": "backend",
+            "text": "No placeable tile remains in the (re-shuffled) draw stack (Nothing case): the backend calls finishGame, which scores all remaining features and cloisters, empties the meeples dict, and sets FinishedState; the finished game is broadcast (see UC-07).",
+            "code_ref": ["src/Backend.elm:76-84", "src/Helpers/GameLogic.elm:511-556"]
+          }
+        ],
+        "special_requirements": [
+          {
+            "text": "Players start with 7 meeples; the Skip option is always available in the UI regardless of meeple count.",
+            "code_ref": ["src/Types/Game.elm:61", "src/Views/GameView.elm:382-395"]
+          },
+          {
+            "text": "No turn check in the backend PlaceMeeple handler; the meeple's owner is always game.currentPlayer, never the sending client.",
+            "code_ref": ["src/Backend.elm:170-178", "src/Helpers/GameLogic.elm:386-391"]
+          },
+          {
+            "text": "The draw stack is re-shuffled after every meeple placement (Skip included), per the readme rule 'if it can not be placed, shuffle it back and draw a new one'.",
+            "code_ref": ["src/Backend.elm:177", "readme.md:60-61"]
+          }
+        ]
+      }
+    },
+    {
+      "id": "UC-07",
+      "kind": "use_case",
+      "name": "Score a completed feature by majority",
+      "description": "When a feature touched by the last placed tile is finished (or at game end), its size in tiles is awarded to the player(s) with the most meeples on it; ties award the full score to every tied player. Triggered by UC-06 (meeple placement/skip) or by draw-stack exhaustion.",
+      "code_ref": [
+        "src/Helpers/GameLogic.elm:256-290",
+        "src/Helpers/GameLogic.elm:170-203",
+        "src/Helpers/GameLogic.elm:430-436",
+        "src/Helpers/GameLogic.elm:511-556"
+      ],
+      "unverified": null,
+      "detail": {
+        "brief": "System-internal scoring, triggered by a player's meeple placement/skip (UC-06-S4..S6) or by finishGame at game end. Mid-game: only features closed by the last placed tile are scored, with a 2x bonus for pre-end cities larger than 2 tiles. At game end: every remaining feature and cloister is scored with no bonus and the game enters FinishedState.",
+        "primary_actor": "UC-A1",
+        "secondary_actors": ["UC-A2"],
+        "preconditions": [
+          {
+            "text": "A SideId is under evaluation: either a side/cloister of the last placed tile after a meeple step (mid-game), or any SideId still holding meeples at game end.",
+            "code_ref": ["src/Helpers/GameLogic.elm:418-422", "src/Helpers/GameLogic.elm:514-518"]
+          }
+        ],
+        "postconditions": [
+          {
+            "text": "The majority owner(s)' totals in playerScores are increased by the feature score (mid-game) or by all remaining feature/cloister scores (game end).",
+            "code_ref": ["src/Helpers/GameLogic.elm:444-464", "src/Helpers/GameLogic.elm:529-550"]
+          },
+          {
+            "text": "Mid-game: the scored SideIds are removed from the meeples dict and their meeples returned to owners. Game end: the meeples dict is emptied and gameState is FinishedState.",
+            "code_ref": ["src/Helpers/GameLogic.elm:440-442", "src/Helpers/GameLogic.elm:551-556"]
+          }
+        ],
+        "main_flow": [
+          {
+            "id": "UC-07-S1",
+            "lane": "backend",
+            "text": "After the meeple step, backend collects the unique SideIds of the last placed tile (edges plus cloister, -1 excluded) via getTileSideIds.",
+            "code_ref": ["src/Helpers/GameLogic.elm:418-422", "src/Types/Tile.elm:42-57"]
+          },
+          {
+            "id": "UC-07-S2",
+            "lane": "backend",
+            "text": "Backend keeps only the finished SideIds: for every tile of the feature, each side carrying the SideId must have a placed neighbour tile (isFeatureFinished).",
+            "code_ref": ["src/Helpers/GameLogic.elm:422", "src/Helpers/GameLogic.elm:193-203"]
+          },
+          {
+            "id": "UC-07-S3",
+            "lane": "backend",
+            "text": "Backend counts the feature's size as the number of grid tiles sharing the SideId (countFeature) and doubles the score when it is a city with score > 2 (completed before the game ends).",
+            "code_ref": ["src/Helpers/GameLogic.elm:423-436", "src/Helpers/GameLogic.elm:170-189"]
+          },
+          {
+            "id": "UC-07-S4",
+            "lane": "backend",
+            "text": "Backend appends scores for cloisters completed around the last placed tile: a cloister scoring 9 when its 3x3 neighbourhood is complete.",
+            "code_ref": ["src/Helpers/GameLogic.elm:437-438", "src/Helpers/GameLogic.elm:230-251", "src/Helpers/GameLogic.elm:211-224"]
+          },
+          {
+            "id": "UC-07-S5",
+            "lane": "backend",
+            "text": "Backend determines the owner(s) via getFeatureOwners: meeples under the SideId are counted per player index and every player reaching the maximum count is kept (ties share).",
+            "code_ref": ["src/Helpers/GameLogic.elm:449-451", "src/Helpers/GameLogic.elm:256-290"]
+          },
+          {
+            "id": "UC-07-S6",
+            "lane": "backend",
+            "text": "Backend adds the feature score to each owner's total in playerScores (one entry per tied owner).",
+            "code_ref": ["src/Helpers/GameLogic.elm:444-464"]
+          },
+          {
+            "id": "UC-07-S7",
+            "lane": "backend",
+            "text": "Backend returns the feature's meeples to their owners' pools (+1 each) and removes the scored SideIds from the meeples dict.",
+            "code_ref": ["src/Helpers/GameLogic.elm:440-442", "src/Helpers/GameLogic.elm:470-492"]
+          }
+        ],
+        "alternatives": [
+          {
+            "id": "UC-07-A1",
+            "at_step": "UC-07-S1",
+            "lane": "backend",
+            "text": "Game-end variant: when the draw stack is exhausted, finishGame scores every remaining feature SideId (countFeature) and every cloister (countCloister) with no 2x city bonus, sets meeples to empty and gameState to FinishedState, and the result is broadcast as UpdateGameState.",
+            "code_ref": ["src/Backend.elm:76-84", "src/Helpers/GameLogic.elm:511-556", "src/Helpers/GameLogic.elm:211-224"]
+          },
+          {
+            "id": "UC-07-A2",
+            "at_step": "UC-07-S5",
+            "lane": "backend",
+            "text": "Tie on the maximum meeple count: getFeatureOwners returns all tied players, so each tied player receives the full feature score (the score is not divided).",
+            "code_ref": ["src/Helpers/GameLogic.elm:288-290", "src/Helpers/GameLogic.elm:446-451"]
+          }
+        ],
+        "exceptions": [
+          {
+            "id": "UC-07-E1",
+            "at_step": "UC-07-S2",
+            "lane": "backend",
+            "text": "Unfinished features are not scored: the SideId is filtered out by isFeatureFinished and its meeples remain on the board for a later turn.",
+            "code_ref": ["src/Helpers/GameLogic.elm:422", "src/Helpers/GameLogic.elm:193-203"]
+          },
+          {
+            "id": "UC-07-E2",
+            "at_step": "UC-07-S5",
+            "lane": "backend",
+            "text": "A finished feature with no meeples under its SideId scores nobody: getFeatureOwners yields an empty owner list and no score entry is produced.",
+            "code_ref": ["src/Helpers/GameLogic.elm:256-264", "src/Helpers/GameLogic.elm:288-290"]
+          }
+        ],
+        "special_requirements": [
+          {
+            "text": "The 2x city bonus applies only to mid-game completion with score strictly greater than 2; finishGame applies no bonus.",
+            "code_ref": ["src/Helpers/GameLogic.elm:430-436", "src/Helpers/GameLogic.elm:511-556"]
+          },
+          {
+            "text": "A completed cloister always scores 9 tiles.",
+            "code_ref": ["src/Helpers/GameLogic.elm:250-251", "src/Helpers/GameLogic.elm:211-224"]
+          },
+          {
+            "text": "Tied majorities each receive the full score rather than splitting it.",
+            "code_ref": ["src/Helpers/GameLogic.elm:288-290"]
+          }
+        ]
+      }
+    },
+    {
+      "id": "UC-08",
+      "kind": "use_case",
+      "name": "Reconnect to an in-progress game",
+      "description": "A player whose browser was disconnected (or a fresh browser) registers a name while the backend already holds a running game; the backend sends the current game state to that client and the frontend renders the live game without altering the backend model.",
+      "code_ref": [
+        "src/Backend.elm:120-123",
+        "src/Frontend.elm:125-132",
+        "readme.md:121-123"
+      ],
+      "unverified": null,
+      "detail": {
+        "brief": "RegisterPlayer arriving during BeGamePlayed is not a lobby registration: the backend returns the model unchanged and sends JoinedGame {game} to the registering client only; the client switches from the lobby view to the shared game view.",
+        "primary_actor": "UC-A1",
+        "secondary_actors": ["UC-A2"],
+        "preconditions": [
+          {
+            "text": "Backend is in the game phase (BeGamePlayed) — a game was started by the lobby.",
+            "code_ref": ["src/Types.elm:15-17", "src/Backend.elm:140-148"]
+          }
+        ],
+        "postconditions": [
+          {
+            "text": "The reconnecting client renders the shared game as FeGamePlayed.",
+            "code_ref": ["src/Frontend.elm:125-132"]
+          },
+          {
+            "text": "The backend model is unchanged: the re-entered name is NOT added to the game's player roster.",
+            "code_ref": ["src/Backend.elm:120-123", "src/Types/Game.elm:28-40"]
+          }
+        ],
+        "main_flow": [
+          {
+            "id": "UC-08-S1",
+            "lane": "actor",
+            "text": "The (reconnecting) player enters a name in the registration view and clicks 'Join'.",
+            "code_ref": ["src/Views/PlayerRegistrationView.elm:17-28", "src/Frontend.elm:50-57"]
+          },
+          {
+            "id": "UC-08-S2",
+            "lane": "frontend",
+            "text": "Frontend switches to the lobby view and sends RegisterPlayer <name> to the backend.",
+            "code_ref": ["src/Frontend.elm:60-62"]
+          },
+          {
+            "id": "UC-08-S3",
+            "lane": "backend",
+            "text": "Backend, being in BeGamePlayed, returns the model unchanged and sends JoinedGame {game} to that client only.",
+            "code_ref": ["src/Backend.elm:120-123"]
+          },
+          {
+            "id": "UC-08-S4",
+            "lane": "external",
+            "text": "Lamdera delivers the targeted JoinedGame message to the reconnecting client.",
+            "code_ref": ["src/Types.elm:83-85", "src/Backend.elm:122"]
+          },
+          {
+            "id": "UC-08-S5",
+            "lane": "frontend",
+            "text": "Client switches from FeLobby to FeGamePlayed with the current shared game (debugMode off) and renders the live board.",
+            "code_ref": ["src/Frontend.elm:125-132", "src/Views/GameView.elm:21-27"]
+          }
+        ],
+        "alternatives": [
+          {
+            "id": "UC-08-A1",
+            "at_step": "UC-08-S2",
+            "lane": "backend",
+            "text": "If the backend is still in the lobby phase, RegisterPlayer is handled as a normal registration (UC-01) instead; a freshly connected client also receives the current roster via the ClientConnected subscription (ignored by its registration screen until it registers a name).",
+            "code_ref": ["src/Backend.elm:93-118", "src/Backend.elm:40-42", "src/Backend.elm:189-191"]
+          }
+        ],
+        "exceptions": [
+          {
+            "id": "UC-08-E1",
+            "at_step": "UC-08-S3",
+            "lane": "backend",
+            "text": "The re-entered name is not part of the game roster: scores and meeple pools are keyed by the original player names, so the reconnected client sees the game under its local display name but the backend never associates it with a game player.",
+            "code_ref": ["src/Backend.elm:120-123", "src/Types/Game.elm:29-31", "src/Frontend.elm:125-132"]
+          },
+          {
+            "id": "UC-08-E2",
+            "at_step": "UC-08-S3",
+            "lane": "backend",
+            "text": "No identity check on reconnection: any client registering a name during the game receives the full shared game state (JoinedGame) unconditionally.",
+            "code_ref": ["src/Backend.elm:120-123"]
+          }
+        ],
+        "special_requirements": [
+          {
+            "text": "Documented behaviour: 'If somebody got disconnected, they can re-enter their name and they can continue playing.'",
+            "code_ref": ["readme.md:121-123"]
+          },
+          {
+            "text": "Reconnection is passive: the client cannot act on the game until its name matches game.currentPlayer (turn check is client-side only, as in UC-04/UC-06).",
+            "code_ref": ["src/Views/GameView.elm:58-75", "src/Views/GameView.elm:121-142"]
+          }
+        ]
+      }
+    }
+  ],
+  "gaps": [
+    "Planner scope note said '74-tile set'; the code builds a 71-tile draw stack (src/Types/Game.elm:120-147) plus 1 starting tile (src/Types/Game.elm:102-104), i.e. 72 tiles total; the code value was modeled.",
+    "readme.md:129 claims tiles/meeples cannot be placed while debug mode is on; the code does not block placement — the debug overlay is pointer-events:none (src/Views/GameView.elm:582) and the placeable/meeples overlays render unconditionally (src/Views/GameView.elm:58-75, 121-142).",
+    "No turn timers or timeouts exist in the code (frontend subscriptions are Sub.none, src/Frontend.elm:28; the only backend subscription is Lamdera.onConnect, src/Backend.elm:189-191), so a player may stall a turn indefinitely; whether the Lamdera host layer imposes any timeout is UNVERIFIED (outside the repo).",
+    "The Terminate Game feature (src/Views/GameView.elm:743-745, src/Frontend.elm:82-83, src/Backend.elm:180-183, which resets to the empty lobby and broadcasts GameTerminated) exists but is not among the 8 planned use cases and was not modeled as a UC.",
+    "isRotatedCorrectly is exercised only by unit tests (tests/GameLogicTests.elm:14-56); no runtime enforcement of rotation correctness exists in the app.",
+    "The readme says '6 meeples + 1 on the score track' (readme.md:50) while the code initializes 7 meeples per player with no separate score-track meeple (src/Types/Game.elm:61); the code value was modeled.",
+    "Role model: no host/admin role found in code; the 'Kill lobby' affordance is situational (rendered only to the client that received LobbyIsFull, src/Views/PlayerRegistrationView.elm:29-37). Modeled as a single PLAYER role."
+  ]
+}

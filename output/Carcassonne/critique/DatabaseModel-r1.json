@@ -1,0 +1,41 @@
+{
+  "artifact": "DatabaseModel.md",
+  "round": 1,
+  "citations_total": 369,
+  "citations_sampled": 119,
+  "truncated": false,
+  "adjudication": [],
+  "summary": "119/119 unique citations verified; 3 defects: one mis-cited line range (elm.json:12-15 should be 17-18) and two minor wording issues (tileDrawStack 'empty at game end' not code-guaranteed; ||--|| vs 1:4 label).",
+  "defects": [
+    {
+      "id": "C-1",
+      "severity": "major",
+      "category": "citation",
+      "location": "\u00a711 Assumptions & Unverified Items, item 1 (artifact line 639)",
+      "claim": "implied by the Evergreen headers ... and the lamdera/core + lamdera/codecs dependencies (elm.json:12-15)",
+      "problem": "The cited lines do not contain the lamdera dependencies; they point at unrelated elm/html, elm/random, elm/url and random-extra entries.",
+      "evidence": "elm.json:12-15 = elm/html, elm/random, elm/url, random-extra; actual deps at elm.json:17 lamdera/codecs and :18 lamdera/core",
+      "fix_instruction": "Change the citation `elm.json:12-15` to `elm.json:17-18` at line 639 (claim text stays unchanged \u2014 the claim is true)."
+    },
+    {
+      "id": "S-1",
+      "severity": "minor",
+      "category": "semantic",
+      "location": "tileDrawStack lifecycle claim \u2014 mermaid line 62, node map line 176, \u00a75.3 line 337 (and \u00a72 context)",
+      "claim": "71 entries at start; empty when the game is finished ... (src/Backend.elm:76-84)",
+      "problem": "finishGame (src/Helpers/GameLogic.elm:552-556) never clears tileDrawStack, so a game ending with unplaceable tiles can retain a non-empty stack.",
+      "evidence": "src/Helpers/GameLogic.elm:552-556 finishGame updates only playerScores, meeples, gameState",
+      "fix_instruction": "Soften 'empty when the game is finished' at lines 62, 176, 337 (and DBML note line 255 if present) to: consumed as the game progresses; not explicitly cleared by finishGame (src/Helpers/GameLogic.elm:511-556), so a non-empty stack is possible at game end."
+    },
+    {
+      "id": "M-1",
+      "severity": "minor",
+      "category": "mermaid",
+      "location": "ERD block, relationship R13 (artifact line 130) and node map line 216",
+      "claim": "Tile ||--|| Side : \"R13 four named sides (1:4)\"",
+      "problem": "||--|| denotes 1:1, contradicting the (1:4) label; Tile.north/east/south/west are four separate 1:1 links (src/Types/Tile.elm:24-27).",
+      "evidence": "n/a (internal inconsistency)",
+      "fix_instruction": "Relabel to 'R13 one named side per cardinal direction (4 separate 1:1 links)' keeping ||--||; make node map line 216 agree."
+    }
+  ]
+}

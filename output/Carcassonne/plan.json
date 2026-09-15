@@ -1,0 +1,223 @@
+{
+  "repo_name": "Carcassonne",
+  "repo_sha": "ca2797745a863243fa6ce96af63435b0d67bf2ab",
+  "mode": "lite",
+  "stack": {
+    "frontend": {
+      "tech": "Elm 0.19.1 browser app via Lamdera frontend runtime (elm/browser + elm/html virtual DOM)",
+      "citations": [
+        "`elm.json:6`",
+        "`elm.json:9`",
+        "`elm.json:12`",
+        "`src/Frontend.elm:17-31`"
+      ]
+    },
+    "backend": {
+      "tech": "Elm 0.19.1 server-side app via Lamdera backend runtime (lamdera/core + lamdera/codecs), single shared in-memory game model broadcast to clients",
+      "citations": [
+        "`elm.json:17-18`",
+        "`src/Backend.elm:18-25`"
+      ]
+    },
+    "database": {
+      "tech": "None in this repo. State lives only in the in-memory Lamdera backend model; the only persistence-related artifacts are compiler-generated Evergreen state snapshots/migrations consumed by the Lamdera platform, not a local database",
+      "citations": [
+        "`src/Backend.elm:14-15`",
+        "`src/Evergreen/Migrate/V10.elm:3-18`"
+      ]
+    },
+    "external": [
+      {
+        "name": "Lamdera platform (hosting, auto-deploy via git remote, Evergreen state storage across redeploys)",
+        "citations": [
+          "`readme.md:139-151`",
+          "`.github/workflows/test.yaml:33-34`"
+        ]
+      },
+      {
+        "name": "elm-explorations/test (unit test framework, run by elm-test in CI)",
+        "citations": [
+          "`elm.json:16`",
+          "`.github/workflows/test.yaml:45-46`"
+        ]
+      }
+    ]
+  },
+  "layers": {
+    "frontend": ["src/Frontend.elm", "src/Views/", "src/Styles.elm"],
+    "backend": ["src/Backend.elm", "src/Types.elm", "src/Helpers/"],
+    "data": ["src/Evergreen/", "src/Types/"],
+    "external": [".github/", "review/"]
+  },
+  "scopes": {
+    "db": {
+      "files": ["src/Evergreen/", "src/Types/", "src/Types.elm", "tests/"],
+      "notes": "There is NO database in this repo: treat the versioned serialized state as the 'data layer'. src/Evergreen/ holds compiler-generated state snapshots (V1/V3/V5/V10) and migrations between them (the 'schema evolution' to model); src/Types/ + src/Types.elm hold the current state shape (Game record, Tile/Meeple/Feature, FrontendModel/BackendModel and message types). tests/ pin expected state behavior. Scope = 39 files, ~1,600 lines."
+    },
+    "classes": {
+      "files": ["src/", "tests/"],
+      "notes": "Elm has no classes: model the records, custom types and module boundaries instead. Cover all of src/ plus tests/ (48 files, ~3,820 lines). Treat src/Evergreen/ as generated snapshots mirroring current types (see `src/Evergreen/Migrate/V10.elm:3`), not as hand-designed types; review/ is a separate elm-review tooling project, out of scope."
+    },
+    "flows": {
+      "files": ["src/Frontend.elm", "src/Backend.elm", "src/Types.elm", "src/Helpers/", "src/Views/", "tests/"],
+      "notes": "Trace the message flow: view click -> FrontendMsg -> update -> sendToBackend ToBackend -> Backend.updateFromFrontend -> broadcast ToFrontend -> Frontend.updateFromBackend -> new view. Key async re-entries are the Random Cmds: Random.generate InitializeGameAndTileDrawStackShuffled and TileDrawStackShuffled (draw-stack refills after each turn). Note src/Helpers/FrontendHelpers.elm is imported BY the backend (client-side validation shared with server), not frontend-only. 11 files, ~2,530 lines."
+    },
+    "usecases": {
+      "files": ["src/Frontend.elm", "src/Backend.elm", "src/Types.elm", "src/Views/", "src/Types/GameState.elm", "src/Helpers/FrontendHelpers.elm"],
+      "notes": "The actor is the browser player. Entry points are view clicks (Register `src/Views/PlayerRegistrationView.elm:26`, start game `src/Views/PlayerLobbyView.elm:21`, board click `src/Views/GameView.elm:327`, meeple click `src/Views/GameView.elm:533`) -> Frontend.elm update -> ToBackend messages -> Backend.updateFromFrontend handlers. Backend state gates everything: BePlayerRegistration (lobby) vs BeGamePlayed (game) (`src/Types.elm:11-17`). 8 files, ~1,440 lines."
+    },
+    "domain": {
+      "files": ["src/Types/", "src/Types.elm", "src/Helpers/GameLogic.elm", "src/Helpers/TileMapper.elm", "tests/"],
+      "notes": "Domain model: Tile (4 sides each with SideId + Feature, optional cloister, rotation `src/Types/Tile.elm:1`), Meeple (SideId owner `src/Types/Meeple.elm:1`), Game (TileGrid, Meeples, PlayerScores, draw stack, turn state `src/Types/Game.elm:28-40`), GameState PlaceTile/PlaceMeeple/Finished (`src/Types/GameState.elm:4-7`). Game rules (rotation, SideId merging on placement, majority scoring, 2x city bonus, cloister completion) live in src/Helpers/GameLogic.elm; the 74-tile tileset is hand-written data in src/Helpers/TileMapper.elm; tests/ pin expected behavior. 14 files, ~1,515 lines."
+    }
+  },
+  "top_processes": [
+    {
+      "name": "Player registration and lobby join",
+      "entry_points": [
+        "`src/Views/PlayerRegistrationView.elm:26`",
+        "`src/Frontend.elm:50-62`",
+        "`src/Backend.elm:93-118`"
+      ],
+      "why": "Entry point of the whole app: name validation client-side, server-side duplicate/lobby-full checks (limit 5), broadcast of updated player list to all clients"
+    },
+    {
+      "name": "Lobby management (kick player / kill lobby)",
+      "entry_points": [
+        "`src/Views/PlayerLobbyView.elm:35`",
+        "`src/Views/PlayerRegistrationView.elm:31`",
+        "`src/Backend.elm:125-138`"
+      ],
+      "why": "Lobby-only side flow: KickPlayer and KillLobby mutate the registration state and broadcast PlayerKicked/LobbyKilled, forcing kicked clients back to the registration screen (`src/Frontend.elm:98-124`)"
+    },
+    {
+      "name": "Game initialization with shuffled tile draw",
+      "entry_points": [
+        "`src/Views/PlayerLobbyView.elm:21`",
+        "`src/Backend.elm:140-148`",
+        "`src/Backend.elm:44-59`"
+      ],
+      "why": "Lobby-to-game transition: initializeGame builds the 74-tile draw stack and starting grid, Random.generate shuffles it, and getPlayableTileFromDrawstack skips unplaceable tiles for the first draw"
+    },
+    {
+      "name": "Placing a tile on the board (turn step 1)",
+      "entry_points": [
+        "`src/Views/GameView.elm:327`",
+        "`src/Backend.elm:160-168`",
+        "`src/Helpers/GameLogic.elm:323-370`"
+      ],
+      "why": "Core turn loop: placeTile inserts the tile and merges SideIds of adjacent features across the grid and meeple dict, then switches GameState to PlaceMeepleState; placement validity is only checked client-side (`src/Helpers/FrontendHelpers.elm:48-110`)"
+    },
+    {
+      "name": "Rotating the drawn tile",
+      "entry_points": [
+        "`src/Views/GameView.elm:741`",
+        "`src/Helpers/GameLogic.elm:21-40`",
+        "`src/Helpers/GameLogic.elm:45-94`"
+      ],
+      "why": "Pre-placement interaction: rotateLeft permutes the four sides and isRotatedCorrectly cross-checks against the canonical tile from the tileset"
+    },
+    {
+      "name": "Placing a meeple with immediate feature scoring",
+      "entry_points": [
+        "`src/Views/GameView.elm:533`",
+        "`src/Views/GameView.elm:393`",
+        "`src/Backend.elm:170-178`",
+        "`src/Helpers/GameLogic.elm:383-508`"
+      ],
+      "why": "Turn step 2 and the most complex flow: places meeple (or skips), scores every newly finished feature by majority with a 2x bonus for completed cities, returns finished meeples, advances the turn, and re-shuffles the draw stack via Random.generate"
+    },
+    {
+      "name": "End-of-game final scoring",
+      "entry_points": [
+        "`src/Backend.elm:61-84`",
+        "`src/Helpers/GameLogic.elm:511-556`"
+      ],
+      "why": "When the draw stack yields no playable tile, finishGame scores all remaining features and cloisters, empties the meeple dict and sets FinishedState, determining the winner"
+    },
+    {
+      "name": "Rejoining an in-progress game",
+      "entry_points": [
+        "`src/Backend.elm:120-123`",
+        "`src/Frontend.elm:125-132`"
+      ],
+      "why": "A player registering while BeGamePlayed is active receives JoinedGame{game} and re-enters FeGamePlayed; the readme advertises this reconnection for disconnected players (`readme.md:123`)"
+    }
+  ],
+  "top_use_cases": [
+    {
+      "id": "UC-01",
+      "name": "Register a player in the lobby",
+      "hint": "`src/Backend.elm:93-118` (duplicate-name rejection, 5-player limit, LobbyIsFull), UI at `src/Views/PlayerRegistrationView.elm:16-26`"
+    },
+    {
+      "id": "UC-02",
+      "name": "Kick a player from the lobby",
+      "hint": "`src/Backend.elm:125-133` (KickPlayer handler + broadcast PlayerKicked), UI at `src/Views/PlayerLobbyView.elm:35`"
+    },
+    {
+      "id": "UC-03",
+      "name": "Start a new game",
+      "hint": "`src/Backend.elm:140-148` (InitializeGame -> initializeGame `src/Types/Game.elm:53-73` + Random.shuffle of the draw stack), UI at `src/Views/PlayerLobbyView.elm:21`"
+    },
+    {
+      "id": "UC-04",
+      "name": "Place a tile on the board",
+      "hint": "`src/Helpers/GameLogic.elm:323-370` (SideId merging, lastPlacedTile, state switch), validity check `src/Helpers/FrontendHelpers.elm:48-110`, UI click `src/Views/GameView.elm:327`"
+    },
+    {
+      "id": "UC-05",
+      "name": "Rotate the drawn tile",
+      "hint": "`src/Helpers/GameLogic.elm:21-40` (rotateLeft with overflow guard), correctness check `src/Helpers/GameLogic.elm:45-94`, UI button `src/Views/GameView.elm:741`"
+    },
+    {
+      "id": "UC-06",
+      "name": "Place a meeple or skip",
+      "hint": "`src/Helpers/GameLogic.elm:383-508` (position-to-SideId placement incl. cloister center, Skip returns no change), positions offered by `src/Helpers/FrontendHelpers.elm:27-43`, UI `src/Views/GameView.elm:393,533`"
+    },
+    {
+      "id": "UC-07",
+      "name": "Score a completed feature by majority",
+      "hint": "`src/Helpers/GameLogic.elm:256-290` (getFeatureOwners majority/tie rule), `src/Helpers/GameLogic.elm:170-203` (countFeature + isFeatureFinished), 2x city bonus at `src/Helpers/GameLogic.elm:430-436`, final scoring `src/Helpers/GameLogic.elm:511-556`"
+    },
+    {
+      "id": "UC-08",
+      "name": "Reconnect to an in-progress game",
+      "hint": "`src/Backend.elm:120-123` (RegisterPlayer during BeGamePlayed -> JoinedGame), handled client-side at `src/Frontend.elm:125-132`; advertised in `readme.md:121-123`"
+    }
+  ],
+  "risks": [
+    {
+      "risk": "No local database or persistence layer: the entire game (players, grid, scores) lives in the in-memory Lamdera backend model, so a server restart with no Evergreen snapshot loses the game; any 'DB analyst' work here is about the serialized state snapshots, not a datastore",
+      "citation": "`src/Backend.elm:14-15` (Model = single BackendModel), `src/Evergreen/Migrate/V10.elm:3-18` (snapshots managed by the Lamdera platform, not a local DB)"
+    },
+    {
+      "risk": "Legacy versioned state: four parallel copies of the core types (Evergreen V1/V3/V5/V10) mirror the current src/Types, and the V10 migration does ModelReset for both frontend and backend models, discarding previously persisted state at that boundary - analysts must not treat V1-V10 as live code paths",
+      "citation": "`src/Evergreen/V1/Types.elm:1`, `src/Evergreen/V3/Types.elm:1`, `src/Evergreen/V5/Types.elm:1`, `src/Evergreen/V10/Types.elm:1`, `src/Evergreen/Migrate/V10.elm:36-43`"
+    },
+    {
+      "risk": "Compiler-generated code inside src/: Evergreen migration files are auto-generated by the Lamdera compiler (and the Evergreen/V*/Types.* snapshots mirror current types), so they document state evolution but must not be modeled as hand-written design or logic",
+      "citation": "`src/Evergreen/Migrate/V10.elm:3` ('This migration file was automatically generated by the lamdera compiler'), `src/Evergreen/Migrate/V5.elm:3`"
+    },
+    {
+      "risk": "Debug code in the backend hot path: Debug.log runs on every client connection in production code",
+      "citation": "`src/Backend.elm:41`"
+    },
+    {
+      "risk": "Client-trusted rules: placeTile and placeMeeple explicitly 'do not check whether the move is valid'; placement validity is only enforced client-side in FrontendHelpers, so a tampered client could place invalid tiles or meeples (no server-side turn/validity enforcement)",
+      "citation": "`src/Helpers/GameLogic.elm:311-314` and `src/Helpers/GameLogic.elm:373-376` ('Does not check whether the move is valid'), `src/Helpers/FrontendHelpers.elm:48-110`"
+    },
+    {
+      "risk": "Thin test coverage: only 2 test files (296 lines) against ~3,524 lines of src; CI does run elm-test plus elm-review and compiles both entry points",
+      "citation": "`tests/GameLogicTests.elm:1-11`, `tests/MeepleTests.elm:1`, `.github/workflows/test.yaml:36-46`"
+    },
+    {
+      "risk": "Spec mismatch - field scoring: the readme documents end-of-game field scoring (3 points per adjacent completed city) but finishGame only counts generic feature tile counts and cloisters, with no field-specific rule; fields instead score by raw tile count",
+      "citation": "`readme.md:79`, `src/Helpers/GameLogic.elm:511-556` (finishGame has no Field case; Feature enum has Field at `src/Types/Feature.elm:7`)"
+    },
+    {
+      "risk": "Spec mismatch - meeple economy: the readme says 6 meeples + 1 score-track meeple per player, but the code gives a flat 7 meeples and implements no score track",
+      "citation": "`readme.md:50-52`, `src/Types/Game.elm:61` (playerMeeples initialized to 7)"
+    }
+  ]
+}

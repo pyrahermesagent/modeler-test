@@ -1,0 +1,2861 @@
+{
+  "model": "flows",
+  "repo_name": "Carcassonne",
+  "repo_sha": "ca2797745a863243fa6ce96af63435b0d67bf2ab",
+  "analyst_status": "ok",
+  "generated_by": "02-flow-analyst",
+  "scope_note": "Top-5 end-to-end Lamdera message flows (view click -> FrontendMsg -> update -> sendToBackend ToBackend -> Backend.updateFromFrontend -> GameLogic -> broadcast ToFrontend -> Frontend.updateFromBackend -> new view), including the two Random.generate async re-entries (InitializeGameAndTileDrawStackShuffled, TileDrawStackShuffled); low-priority flows (tile rotation, lobby kick/kill, mid-game rejoin) excluded beyond cross-references.",
+  "elements": [
+    {
+      "id": "PR-1",
+      "kind": "process",
+      "name": "Placing a tile on the board (turn step 1)",
+      "description": "Current player clicks a highlighted grid cell in PlaceTileState. Validity (empty cell adjacent to the grid, matching sideFeatures against N/E/S/W neighbours) is enforced ONLY client-side by FrontendHelpers; the server applies placeTile unconditionally (GameLogic docs: 'Does not check whether the move is valid'). placeTile renumbers sideIds, inserts the tile, merges adjacent features across tileGrid and meeple dict, and switches gameState to PlaceMeepleState. All clients converge via Lamdera broadcast. Initial state: gameState == PlaceTileState, currentPlayer owns the turn. Final states: PlaceMeepleState (happy path) or unchanged state on the three reject paths. No fork/join nodes: Elm update loops are sequential; the Lamdera broadcast is a single fan-out action on the external lane, and the acting client is expected to receive the same broadcast as every other client.",
+      "code_ref": [
+        "src/Views/GameView.elm:318-329",
+        "src/Backend.elm:160-168",
+        "src/Helpers/GameLogic.elm:323-370"
+      ],
+      "detail": {
+        "lanes": [
+          "client",
+          "server",
+          "external"
+        ],
+        "lane_legend": {
+          "client": "Player's browser: src/Views/GameView.elm (render + Html event handlers) and src/Frontend.elm (update / updateFromBackend / view).",
+          "server": "Lamdera backend: src/Backend.elm (updateFromFrontend) + src/Helpers/GameLogic.elm, src/Helpers/FrontendHelpers.elm, src/Helpers/TileMapper.elm, src/Types/*.",
+          "external": "Lamdera platform + Elm runtime: Lamdera broadcast message fan-out (src/Backend.elm:6) and Random cmd execution / Cmd-channel re-entry.",
+          "database": "N/A - no database or persistence; all state lives in-memory in the Lamdera backend model (BackendModel, src/Types.elm:11-17)."
+        },
+        "start": "PR-1-N1",
+        "ends": [
+          "PR-1-N15",
+          "PR-1-N16",
+          "PR-1-N17"
+        ],
+        "error_paths": [
+          "Not the current player's turn: no placeable overlay rendered (client-side guard, src/Views/GameView.elm:58, 73-74)",
+          "Coordinate not in the placeable set: cell rendered without onClick handler, no backend call (src/Views/GameView.elm:331-332, src/Helpers/FrontendHelpers.elm:48-85)",
+          "Backend not in BeGamePlayed state: message dropped, Cmd.none (src/Backend.elm:185-186)"
+        ]
+      }
+    },
+    {
+      "id": "PR-1-N1",
+      "kind": "start",
+      "name": "Start: PlaceTileState rendered, current player's browser",
+      "process_id": "PR-1",
+      "label": "Start: gameState == PlaceTileState; current player's browser renders board + placeable overlay + drawn tile in sidebar",
+      "lane": "client",
+      "description": "Initial state: backend model BeGamePlayed, game.gameState == PlaceTileState, currentPlayer owns the turn; drawn tile shown in the sidebar.",
+      "code_ref": [
+        "src/Views/GameView.elm:28-29",
+        "src/Types/GameState.elm:4-7",
+        "src/Views/GameView.elm:727-734"
+      ],
+      "detail": {
+        "kind": "start"
+      }
+    },
+    {
+      "id": "PR-1-N2",
+      "kind": "decision",
+      "name": "Is the viewing player the current player?",
+      "process_id": "PR-1",
+      "label": "Decision: is the viewing player the current player? (playerName == currentPlayerName)",
+      "lane": "client",
+      "description": "The placeable-coordinates overlay is only rendered for the player whose turn it is; other players see a non-interactive board.",
+      "code_ref": [
+        "src/Views/GameView.elm:58-59",
+        "src/Views/GameView.elm:24-26"
+      ],
+      "detail": {
+        "kind": "decision"
+      }
+    },
+    {
+      "id": "PR-1-N3",
+      "kind": "action",
+      "name": "Not the current player's turn: no placeable overlay",
+      "process_id": "PR-1",
+      "label": "Not current player's turn: no placeable overlay rendered - board cells are non-interactive, no message can be sent from this client",
+      "lane": "client",
+      "description": "Client-side turn guard: the `else []` branch renders no clickable cells.",
+      "code_ref": [
+        "src/Views/GameView.elm:73-74"
+      ],
+      "detail": {
+        "kind": "action"
+      }
+    },
+    {
+      "id": "PR-1-N4",
+      "kind": "action",
+      "name": "Compute valid placement coordinates (client-side validity)",
+      "process_id": "PR-1",
+      "label": "Compute placeable coordinates: getCoordinatesToBePlacedOn (empty cells adjacent to the grid that pass tileCanBePlaced: empty target cell + matching sideFeature against each existing N/E/S/W neighbour)",
+      "lane": "client",
+      "description": "tileCanBePlaced checks Dict.get (x,y) == Nothing and per-neighbour sideFeature equality (road/field/city/cloister must connect), defaulting True for missing neighbours.",
+      "code_ref": [
+        "src/Views/GameView.elm:60-62",
+        "src/Helpers/FrontendHelpers.elm:89-110",
+        "src/Helpers/FrontendHelpers.elm:48-85"
+      ],
+      "detail": {
+        "kind": "action"
+      }
+    },
+    {
+      "id": "PR-1-N5",
+      "kind": "decision",
+      "name": "Is the cell in the placeable set?",
+      "process_id": "PR-1",
+      "label": "Decision: is the rendered cell in the placeable set? (Set.member coord coordinatesToBePlacedOn)",
+      "lane": "client",
+      "description": "renderPlaceableCell branches on set membership: members get an onClick handler, all others render an empty tile.",
+      "code_ref": [
+        "src/Views/GameView.elm:318-332"
+      ],
+      "detail": {
+        "kind": "decision"
+      }
+    },
+    {
+      "id": "PR-1-N6",
+      "kind": "action",
+      "name": "Invalid placement: empty non-clickable cell",
+      "process_id": "PR-1",
+      "label": "Invalid placement: cell rendered as empty tile WITHOUT onClick handler - the move is blocked client-side, no message is sent, game state unchanged",
+      "lane": "client",
+      "description": "Error path: placement validity is enforced only in the browser (FrontendHelpers); there is no server-side re-check of tile placement (GameLogic.elm:311-322).",
+      "code_ref": [
+        "src/Views/GameView.elm:331-332",
+        "src/Helpers/FrontendHelpers.elm:48-85"
+      ],
+      "detail": {
+        "kind": "action"
+      }
+    },
+    {
+      "id": "PR-1-N7",
+      "kind": "action",
+      "name": "Valid placement: click fires FePlaceTile",
+      "process_id": "PR-1",
+      "label": "Valid placement: onClick fires FrontendMsg FePlaceTile coord",
+      "lane": "client",
+      "description": "Green highlighted cell with cursor:pointer; the only entry point for this process (cited by planner as GameView.elm:327).",
+      "code_ref": [
+        "src/Views/GameView.elm:318-329"
+      ],
+      "detail": {
+        "kind": "action"
+      }
+    },
+    {
+      "id": "PR-1-N8",
+      "kind": "action",
+      "name": "Frontend.update sends PlaceTile to backend",
+      "process_id": "PR-1",
+      "label": "Frontend.update: sendToBackend (PlaceTile coordinates)",
+      "lane": "client",
+      "description": "Local model is NOT changed here - the client waits for the authoritative broadcast; the only effect is the Lamdera sendToBackend cmd.",
+      "code_ref": [
+        "src/Frontend.elm:76-77",
+        "src/Types.elm:56"
+      ],
+      "detail": {
+        "kind": "action"
+      }
+    },
+    {
+      "id": "PR-1-N9",
+      "kind": "decision",
+      "name": "Is the backend in BeGamePlayed state?",
+      "process_id": "PR-1",
+      "label": "Decision (server): does (PlaceTile coordinates, model) match (PlaceTile _, BeGamePlayed { game })?",
+      "lane": "server",
+      "description": "updateFromFrontend pattern-matches message against backend model; anything else falls through to the no-op catch-all.",
+      "code_ref": [
+        "src/Backend.elm:160",
+        "src/Backend.elm:185-186"
+      ],
+      "detail": {
+        "kind": "decision"
+      }
+    },
+    {
+      "id": "PR-1-N10",
+      "kind": "action",
+      "name": "Wrong state: message ignored",
+      "process_id": "PR-1",
+      "label": "Wrong backend state: message ignored, model unchanged, Cmd.none (e.g. PlaceTile arriving while BePlayerRegistration)",
+      "lane": "server",
+      "description": "Error path: silent drop - no reply is sent to the client.",
+      "code_ref": [
+        "src/Backend.elm:185-186"
+      ],
+      "detail": {
+        "kind": "action"
+      }
+    },
+    {
+      "id": "PR-1-N11",
+      "kind": "action",
+      "name": "placeTile: insert tile, merge features, switch state",
+      "process_id": "PR-1",
+      "label": "placeTile: renumber tile sideIds (updateSideIds nextSideId+1); insert tile into tileGrid at (x,y); merge adjacent features by replacing each adjacent sideId across all tiles (replaceTileSideId x4) and across the meeple dict (replaceMeepleSideId x4); set lastPlacedTile = (x,y), nextSideId; gameState <- PlaceMeepleState",
+      "lane": "server",
+      "description": "Server does NOT validate the move or the turn owner (docs at GameLogic.elm:311-322: 'Does not check whether the move is valid'); it trusts the client.",
+      "code_ref": [
+        "src/Helpers/GameLogic.elm:323-370",
+        "src/Helpers/GameLogic.elm:102-131",
+        "src/Helpers/GameLogic.elm:136-162",
+        "src/Backend.elm:160-168"
+      ],
+      "detail": {
+        "kind": "action"
+      }
+    },
+    {
+      "id": "PR-1-N12",
+      "kind": "action",
+      "name": "Lamdera broadcast UpdateGameState to all clients",
+      "process_id": "PR-1",
+      "label": "Lamdera broadcast (UpdateGameState { game = updatedGame }) to all connected clients",
+      "lane": "external",
+      "description": "Single fan-out cmd; every client (including the acting one, by Lamdera broadcast semantics) receives the same ToFrontend msg.",
+      "code_ref": [
+        "src/Backend.elm:167",
+        "src/Backend.elm:6"
+      ],
+      "detail": {
+        "kind": "action"
+      }
+    },
+    {
+      "id": "PR-1-N13",
+      "kind": "action",
+      "name": "Clients apply the new game state",
+      "process_id": "PR-1",
+      "label": "All clients: updateFromBackend replaces FeGamePlayed.game with the updated game",
+      "lane": "client",
+      "description": "The (UpdateGameState, FeGamePlayed) case is the single convergence point for every in-game server broadcast.",
+      "code_ref": [
+        "src/Frontend.elm:143-150"
+      ],
+      "detail": {
+        "kind": "action"
+      }
+    },
+    {
+      "id": "PR-1-N14",
+      "kind": "action",
+      "name": "Re-render in PlaceMeepleState with meeple overlay",
+      "process_id": "PR-1",
+      "label": "Re-render in PlaceMeepleState: new tile on board, meeple-placement overlay for the current player (getMeeplePositionsToBePlacedOn), sidebar shows 'Now playing' + current scores",
+      "lane": "client",
+      "description": "view model -> renderGameView -> PlaceMeepleState branch; the sidebar tile preview switches to questionmark.png until the next draw.",
+      "code_ref": [
+        "src/Frontend.elm:168-169",
+        "src/Views/GameView.elm:92-157",
+        "src/Views/GameView.elm:122-129",
+        "src/Helpers/FrontendHelpers.elm:27-43",
+        "src/Views/GameView.elm:686-693"
+      ],
+      "detail": {
+        "kind": "action"
+      }
+    },
+    {
+      "id": "PR-1-N15",
+      "kind": "end",
+      "name": "End: PlaceMeepleState (turn step 2 next)",
+      "process_id": "PR-1",
+      "label": "End: gameState == PlaceMeepleState - the same player now places a meeple or skips (process PR-2)",
+      "lane": "client",
+      "description": "Final state: tile placed, features merged, meeple phase active.",
+      "code_ref": [
+        "src/Helpers/GameLogic.elm:367",
+        "src/Types/GameState.elm:6"
+      ],
+      "detail": {
+        "kind": "end"
+      }
+    },
+    {
+      "id": "PR-1-N16",
+      "kind": "end",
+      "name": "End (no-op): blocked client-side",
+      "process_id": "PR-1",
+      "label": "End (no message): placement blocked client-side (not your turn / invalid coordinate) - game state unchanged",
+      "lane": "client",
+      "description": "Final state: identical to start; no ToBackend message was ever sent.",
+      "code_ref": [
+        "src/Views/GameView.elm:73-74",
+        "src/Views/GameView.elm:331-332"
+      ],
+      "detail": {
+        "kind": "end"
+      }
+    },
+    {
+      "id": "PR-1-N17",
+      "kind": "end",
+      "name": "End (no-op): server dropped the message",
+      "process_id": "PR-1",
+      "label": "End (no-op): backend model unchanged (Cmd.none), client never receives a reply",
+      "lane": "server",
+      "description": "Final state: backend model identical; client UI stays on the pre-click frame.",
+      "code_ref": [
+        "src/Backend.elm:185-186"
+      ],
+      "detail": {
+        "kind": "end"
+      }
+    },
+    {
+      "id": "PR-1-E1",
+      "kind": "edge",
+      "name": "N1 -> N2",
+      "process_id": "PR-1",
+      "from": "PR-1-N1",
+      "to": "PR-1-N2",
+      "guard": null,
+      "code_ref": [
+        "src/Views/GameView.elm:28-29"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-1-E2",
+      "kind": "edge",
+      "name": "N2 -> N3 (not current player)",
+      "process_id": "PR-1",
+      "from": "PR-1-N2",
+      "to": "PR-1-N3",
+      "guard": "playerName /= currentPlayerName (else branch of `if playerName == currentPlayerName`)",
+      "code_ref": [
+        "src/Views/GameView.elm:58",
+        "src/Views/GameView.elm:73-74"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-1-E3",
+      "kind": "edge",
+      "name": "N2 -> N4 (current player)",
+      "process_id": "PR-1",
+      "from": "PR-1-N2",
+      "to": "PR-1-N4",
+      "guard": "playerName == currentPlayerName",
+      "code_ref": [
+        "src/Views/GameView.elm:58-62"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-1-E4",
+      "kind": "edge",
+      "name": "N3 -> N16",
+      "process_id": "PR-1",
+      "from": "PR-1-N3",
+      "to": "PR-1-N16",
+      "guard": null,
+      "code_ref": [
+        "src/Views/GameView.elm:73-74"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-1-E5",
+      "kind": "edge",
+      "name": "N4 -> N5",
+      "process_id": "PR-1",
+      "from": "PR-1-N4",
+      "to": "PR-1-N5",
+      "guard": null,
+      "code_ref": [
+        "src/Views/GameView.elm:64-71",
+        "src/Helpers/FrontendHelpers.elm:110"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-1-E6",
+      "kind": "edge",
+      "name": "N5 -> N6 (invalid cell)",
+      "process_id": "PR-1",
+      "from": "PR-1-N5",
+      "to": "PR-1-N6",
+      "guard": "not (Set.member coord coordinatesToBePlacedOn)",
+      "code_ref": [
+        "src/Views/GameView.elm:320",
+        "src/Views/GameView.elm:331-332"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-1-E7",
+      "kind": "edge",
+      "name": "N5 -> N7 (valid cell)",
+      "process_id": "PR-1",
+      "from": "PR-1-N5",
+      "to": "PR-1-N7",
+      "guard": "Set.member coord coordinatesToBePlacedOn",
+      "code_ref": [
+        "src/Views/GameView.elm:320-329"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-1-E8",
+      "kind": "edge",
+      "name": "N6 -> N16",
+      "process_id": "PR-1",
+      "from": "PR-1-N6",
+      "to": "PR-1-N16",
+      "guard": null,
+      "code_ref": [
+        "src/Views/GameView.elm:331-332"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-1-E9",
+      "kind": "edge",
+      "name": "N7 -> N8",
+      "process_id": "PR-1",
+      "from": "PR-1-N7",
+      "to": "PR-1-N8",
+      "guard": null,
+      "code_ref": [
+        "src/Frontend.elm:76-77"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-1-E10",
+      "kind": "edge",
+      "name": "N8 -> N9",
+      "process_id": "PR-1",
+      "from": "PR-1-N8",
+      "to": "PR-1-N9",
+      "guard": null,
+      "code_ref": [
+        "src/Backend.elm:90-92",
+        "src/Backend.elm:160"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-1-E11",
+      "kind": "edge",
+      "name": "N9 -> N10 (wrong state)",
+      "process_id": "PR-1",
+      "from": "PR-1-N9",
+      "to": "PR-1-N10",
+      "guard": "no match: catch-all `_ -> ( model, Cmd.none )` (model is not BeGamePlayed)",
+      "code_ref": [
+        "src/Backend.elm:185-186"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-1-E12",
+      "kind": "edge",
+      "name": "N9 -> N11 (match)",
+      "process_id": "PR-1",
+      "from": "PR-1-N9",
+      "to": "PR-1-N11",
+      "guard": "( PlaceTile coordinates, BeGamePlayed { game } ) matches",
+      "code_ref": [
+        "src/Backend.elm:160-164"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-1-E13",
+      "kind": "edge",
+      "name": "N10 -> N17",
+      "process_id": "PR-1",
+      "from": "PR-1-N10",
+      "to": "PR-1-N17",
+      "guard": null,
+      "code_ref": [
+        "src/Backend.elm:185-186"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-1-E14",
+      "kind": "edge",
+      "name": "N11 -> N12",
+      "process_id": "PR-1",
+      "from": "PR-1-N11",
+      "to": "PR-1-N12",
+      "guard": null,
+      "code_ref": [
+        "src/Backend.elm:166-167"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-1-E15",
+      "kind": "edge",
+      "name": "N12 -> N13",
+      "process_id": "PR-1",
+      "from": "PR-1-N12",
+      "to": "PR-1-N13",
+      "guard": null,
+      "code_ref": [
+        "src/Backend.elm:167",
+        "src/Frontend.elm:143-144"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-1-E16",
+      "kind": "edge",
+      "name": "N13 -> N14",
+      "process_id": "PR-1",
+      "from": "PR-1-N13",
+      "to": "PR-1-N14",
+      "guard": null,
+      "code_ref": [
+        "src/Frontend.elm:168-169",
+        "src/Views/GameView.elm:92-93"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-1-E17",
+      "kind": "edge",
+      "name": "N14 -> N15",
+      "process_id": "PR-1",
+      "from": "PR-1-N14",
+      "to": "PR-1-N15",
+      "guard": null,
+      "code_ref": [
+        "src/Helpers/GameLogic.elm:367"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-2",
+      "kind": "process",
+      "name": "Placing a meeple with immediate feature scoring (turn step 2)",
+      "description": "After placeTile, the same player may drop a meeple on a side/cloister of the last-placed tile or skip. Client offers only unoccupied sides (+ cloister center); if the player has 0 meeples left only Skip is offered. placeMeeple inserts the meeple, scores every newly FINISHED feature by tile count with a 2x bonus for completed cities (>2 tiles), adds cloister scores, awards points to majority owners, removes finished features from the meeple dict (returning those meeples), decrements the placer's meeple count (unless Skip), advances currentPlayer and sets PlaceTileState. The backend then issues Random.generate TileDrawStackShuffled (async re-entry): the shuffled draw stack either yields a playable tile (normal refill) or, if none exists, triggers finishGame (PR-5). Server never validates the position or the turn owner. Initial state: PlaceMeepleState with lastPlacedTile set. Final states: PlaceTileState with a fresh drawn tile, FinishedState, or unchanged state on the two no-op paths. No fork/join nodes: Elm updates are sequential; the broadcast is one fan-out action on the external lane.",
+      "code_ref": [
+        "src/Views/GameView.elm:524-539",
+        "src/Views/GameView.elm:382-396",
+        "src/Backend.elm:170-178",
+        "src/Helpers/GameLogic.elm:383-508",
+        "src/Backend.elm:61-84"
+      ],
+      "detail": {
+        "lanes": [
+          "client",
+          "server",
+          "external"
+        ],
+        "lane_legend": {
+          "client": "Player's browser: src/Views/GameView.elm (render + Html event handlers) and src/Frontend.elm (update / updateFromBackend / view).",
+          "server": "Lamdera backend: src/Backend.elm (updateFromFrontend + update for the shuffle re-entry) + src/Helpers/GameLogic.elm, src/Helpers/FrontendHelpers.elm, src/Helpers/TileMapper.elm, src/Types/*.",
+          "external": "Lamdera platform + Elm runtime: Random cmd execution and Cmd-channel re-entry (BackendMsg TileDrawStackShuffled, src/Backend.elm:177 -> 61) plus Lamdera broadcast fan-out (src/Backend.elm:6).",
+          "database": "N/A - no database or persistence; all state lives in-memory in the Lamdera backend model (BackendModel, src/Types.elm:11-17)."
+        },
+        "start": "PR-2-N1",
+        "ends": [
+          "PR-2-N23",
+          "PR-2-N24",
+          "PR-2-N25",
+          "PR-2-N26"
+        ],
+        "error_paths": [
+          "Not the current player's turn: no meeple overlay rendered, no message (src/Views/GameView.elm:140-141)",
+          "Position not offerable (side already has a meeple / sideId -1 / 0 meeples left): only other rendered positions or the Skip button are clickable (src/Helpers/FrontendHelpers.elm:32-43, src/Views/GameView.elm:538-539)",
+          "Backend not in BeGamePlayed state: message dropped, Cmd.none (src/Backend.elm:185-186)",
+          "Draw-stack refill yields no playable tile: game ends via finishGame instead of continuing (src/Backend.elm:76-84)"
+        ]
+      }
+    },
+    {
+      "id": "PR-2-N1",
+      "kind": "start",
+      "name": "Start: PlaceMeepleState after tile placement",
+      "process_id": "PR-2",
+      "label": "Start: gameState == PlaceMeepleState (set by placeTile); lastPlacedTile set; currentPlayer owns the turn",
+      "lane": "client",
+      "description": "Initial state: backend BeGamePlayed, game.gameState == PlaceMeepleState.",
+      "code_ref": [
+        "src/Types/GameState.elm:6",
+        "src/Helpers/GameLogic.elm:367-369",
+        "src/Views/GameView.elm:92-93"
+      ],
+      "detail": {
+        "kind": "start"
+      }
+    },
+    {
+      "id": "PR-2-N2",
+      "kind": "decision",
+      "name": "Is the viewing player the current player?",
+      "process_id": "PR-2",
+      "label": "Decision: is the viewing player the current player? (playerName == currentPlayerName)",
+      "lane": "client",
+      "description": "The meeple-placement overlay is only rendered for the player whose turn it is.",
+      "code_ref": [
+        "src/Views/GameView.elm:121-122",
+        "src/Views/GameView.elm:24-26"
+      ],
+      "detail": {
+        "kind": "decision"
+      }
+    },
+    {
+      "id": "PR-2-N3",
+      "kind": "action",
+      "name": "Not the current player's turn: no meeple overlay",
+      "process_id": "PR-2",
+      "label": "Not current player's turn: no meeple overlay rendered - no meeple placement possible from this client",
+      "lane": "client",
+      "description": "Client-side turn guard (`else []`).",
+      "code_ref": [
+        "src/Views/GameView.elm:140-141"
+      ],
+      "detail": {
+        "kind": "action"
+      }
+    },
+    {
+      "id": "PR-2-N4",
+      "kind": "action",
+      "name": "Compute allowed meeple positions",
+      "process_id": "PR-2",
+      "label": "Compute allowed meeple positions on lastPlacedTile: sides without an existing meeple + cloister center; only [Skip] if the player has 0 meeples left",
+      "lane": "client",
+      "description": "getMeeplePositionsToBePlacedOn: if playerMeeples[player] > 0 -> filter getAllSides to sideIds absent from the meeple dict and drop sideId == -1; else [Skip].",
+      "code_ref": [
+        "src/Views/GameView.elm:122-129",
+        "src/Helpers/FrontendHelpers.elm:27-43"
+      ],
+      "detail": {
+        "kind": "action"
+      }
+    },
+    {
+      "id": "PR-2-N5",
+      "kind": "decision",
+      "name": "Is the position offerable (clickable)?",
+      "process_id": "PR-2",
+      "label": "Decision: is this position rendered as a clickable circle? (List.member position positionsToBePlacedOn)",
+      "lane": "client",
+      "description": "renderMeepleCircle draws a clickable div only for offerable positions; all others render an empty div.",
+      "code_ref": [
+        "src/Views/GameView.elm:524-539"
+      ],
+      "detail": {
+        "kind": "decision"
+      }
+    },
+    {
+      "id": "PR-2-N6",
+      "kind": "action",
+      "name": "Position not offerable",
+      "process_id": "PR-2",
+      "label": "Position not offerable (side already has a meeple, sideId == -1, or player out of meeples): no click target - the player's remaining options are the other rendered circles or the 'Skip Meeple placement' button",
+      "lane": "client",
+      "description": "Error/limit path enforced client-side; with 0 meeples left only [Skip] is ever offered (FrontendHelpers.elm:42-43).",
+      "code_ref": [
+        "src/Views/GameView.elm:538-539",
+        "src/Helpers/FrontendHelpers.elm:32-43",
+        "src/Views/GameView.elm:382-396"
+      ],
+      "detail": {
+        "kind": "action"
+      }
+    },
+    {
+      "id": "PR-2-N7",
+      "kind": "action",
+      "name": "Click fires FePlaceMeeple",
+      "process_id": "PR-2",
+      "label": "Click: onClick fires FePlaceMeeple position (side/cloister circle) or FePlaceMeeple Skip ('Skip Meeple placement' button)",
+      "lane": "client",
+      "description": "Entry points cited by planner: GameView.elm:533 (position circle) and GameView.elm:393 (Skip button).",
+      "code_ref": [
+        "src/Views/GameView.elm:533",
+        "src/Views/GameView.elm:393"
+      ],
+      "detail": {
+        "kind": "action"
+      }
+    },
+    {
+      "id": "PR-2-N8",
+      "kind": "action",
+      "name": "Frontend.update sends PlaceMeeple to backend",
+      "process_id": "PR-2",
+      "label": "Frontend.update: sendToBackend (PlaceMeeple position)",
+      "lane": "client",
+      "description": "Local model unchanged; client awaits the broadcast.",
+      "code_ref": [
+        "src/Frontend.elm:79-80",
+        "src/Types.elm:57"
+      ],
+      "detail": {
+        "kind": "action"
+      }
+    },
+    {
+      "id": "PR-2-N9",
+      "kind": "decision",
+      "name": "Is the backend in BeGamePlayed state?",
+      "process_id": "PR-2",
+      "label": "Decision (server): does (PlaceMeeple position, model) match (PlaceMeeple _, BeGamePlayed { game })?",
+      "lane": "server",
+      "description": "updateFromFrontend pattern match; otherwise the no-op catch-all.",
+      "code_ref": [
+        "src/Backend.elm:170",
+        "src/Backend.elm:185-186"
+      ],
+      "detail": {
+        "kind": "decision"
+      }
+    },
+    {
+      "id": "PR-2-N10",
+      "kind": "action",
+      "name": "Wrong state: message ignored",
+      "process_id": "PR-2",
+      "label": "Wrong backend state: message ignored, model unchanged, Cmd.none",
+      "lane": "server",
+      "description": "Error path: silent drop, no reply.",
+      "code_ref": [
+        "src/Backend.elm:185-186"
+      ],
+      "detail": {
+        "kind": "action"
+      }
+    },
+    {
+      "id": "PR-2-N11",
+      "kind": "action",
+      "name": "placeMeeple: insert meeple under its sideId",
+      "process_id": "PR-2",
+      "label": "placeMeeple: build meeple (owner = currentPlayer, coordinates = lastPlacedTile); insert under the position's sideId (North/East/South/West -> side sideId, Center -> cloister sideId with default -1); Skip -> meeple dict unchanged. Server does not validate the position or the turn owner",
+      "lane": "server",
+      "description": "Docs at GameLogic.elm:373-382: 'Does not check whether the move is valid'.",
+      "code_ref": [
+        "src/Helpers/GameLogic.elm:384-416"
+      ],
+      "detail": {
+        "kind": "action"
+      }
+    },
+    {
+      "id": "PR-2-N12",
+      "kind": "decision",
+      "name": "Any feature of the last-placed tile finished?",
+      "process_id": "PR-2",
+      "label": "Decision: do any sideIds of lastPlacedTile pass isFeatureFinished? (getTileSideIds lastPlacedTile |> Set.toList |> List.filter (isFeatureFinished game.tileGrid))",
+      "lane": "server",
+      "description": "isFeatureFinished: for every tile, each side carrying this sideId must have a neighbour tile on that side (and no cloister of that sideId). An empty filter result means nothing is scored this turn.",
+      "code_ref": [
+        "src/Helpers/GameLogic.elm:418-422",
+        "src/Helpers/GameLogic.elm:193-203",
+        "src/Types/Tile.elm:42-45"
+      ],
+      "detail": {
+        "kind": "decision"
+      }
+    },
+    {
+      "id": "PR-2-N13",
+      "kind": "decision",
+      "name": "Completed city with score > 2? (2x bonus)",
+      "process_id": "PR-2",
+      "label": "Decision (per finished feature): completed city with score > 2? (score > 2 && getSideIdFeature sideId game.tileGrid == City)",
+      "lane": "server",
+      "description": "Cities larger than 2 tiles give 2x points when completed before the game ends (code comment at GameLogic.elm:430).",
+      "code_ref": [
+        "src/Helpers/GameLogic.elm:431-435",
+        "src/Helpers/GameLogic.elm:300-308"
+      ],
+      "detail": {
+        "kind": "decision"
+      }
+    },
+    {
+      "id": "PR-2-N14",
+      "kind": "action",
+      "name": "Score finished features + cloisters, award majority",
+      "process_id": "PR-2",
+      "label": "Score finished features: countFeature (number of tiles sharing the sideId) with 2x for qualifying cities; append cloister scores (getAdjacentTileCloisterScores: cloisters with all 8 neighbours, score 9); award each score to the majority owners via getFeatureOwners, accumulated into playerScores",
+      "lane": "server",
+      "description": "finishedFeatureScores feeds both the score dict and the finished-sideId list used for meeple removal/returns.",
+      "code_ref": [
+        "src/Helpers/GameLogic.elm:418-450",
+        "src/Helpers/GameLogic.elm:170-188",
+        "src/Helpers/GameLogic.elm:211-251",
+        "src/Helpers/GameLogic.elm:256-290"
+      ],
+      "detail": {
+        "kind": "action"
+      }
+    },
+    {
+      "id": "PR-2-N15",
+      "kind": "action",
+      "name": "Return meeples, advance turn, PlaceTileState",
+      "process_id": "PR-2",
+      "label": "Remove finished features from the meeple dict (those meeples are returned to their owners, +1 to playerMeeples); placer's meeple count -1 if position /= Skip else 0; currentPlayer <- getNextPlayer (wraps to 0); gameState <- PlaceTileState",
+      "lane": "server",
+      "description": "Meeple economy: 7 meeples each at start (Types/Game.elm:61); placed meeples are returned only when their feature finishes.",
+      "code_ref": [
+        "src/Helpers/GameLogic.elm:440-508",
+        "src/Types/Game.elm:78-84",
+        "src/Types/Game.elm:61"
+      ],
+      "detail": {
+        "kind": "action"
+      }
+    },
+    {
+      "id": "PR-2-N16",
+      "kind": "action",
+      "name": "Random cmd issued: TileDrawStackShuffled re-entry",
+      "process_id": "PR-2",
+      "label": "Async re-entry: Random.generate TileDrawStackShuffled (Random.List.shuffle updatedGame.tileDrawStack) - the Elm runtime executes the shuffle cmd, then the shuffled stack re-enters Backend.update as BackendMsg TileDrawStackShuffled",
+      "lane": "server",
+      "description": "This is a genuine asynchronous re-entry (Elm Cmd channel), not a sequential step: the turn is already advanced before the shuffle result arrives.",
+      "code_ref": [
+        "src/Backend.elm:177",
+        "src/Backend.elm:37-38",
+        "src/Types.elm:64"
+      ],
+      "detail": {
+        "kind": "action"
+      }
+    },
+    {
+      "id": "PR-2-N17",
+      "kind": "decision",
+      "name": "Playable tile in shuffled draw stack?",
+      "process_id": "PR-2",
+      "label": "Decision (refill re-entry): does the shuffled draw stack yield a playable tile? (getPlayableTileFromDrawstack game.tileGrid shuffledTileDrawStack -> (Just nextTileId, drawStack) | (Nothing, _))",
+      "lane": "server",
+      "description": "getPlayableTileFromDrawstack pops tiles until one is placeable in at least one of 4 rotations (tileCanBePlacedAnywhere); (Nothing, []) when the stack is exhausted.",
+      "code_ref": [
+        "src/Backend.elm:61-63",
+        "src/Helpers/FrontendHelpers.elm:132-143",
+        "src/Helpers/FrontendHelpers.elm:120-127"
+      ],
+      "detail": {
+        "kind": "decision"
+      }
+    },
+    {
+      "id": "PR-2-N18",
+      "kind": "action",
+      "name": "Normal refill: new tileToPlace",
+      "process_id": "PR-2",
+      "label": "Normal refill: tileToPlace <- getTile nextTileId; tileDrawStack <- remaining (playable) tiles",
+      "lane": "server",
+      "description": "Unplaceable tiles at the top of the stack are skipped and dropped from the stack.",
+      "code_ref": [
+        "src/Backend.elm:63-70",
+        "src/Helpers/TileMapper.elm:9-10"
+      ],
+      "detail": {
+        "kind": "action"
+      }
+    },
+    {
+      "id": "PR-2-N19",
+      "kind": "action",
+      "name": "No playable tile: finishGame (PR-5)",
+      "process_id": "PR-2",
+      "label": "Game-over branch: no playable tile in the draw stack - finishGame scores all remaining features and cloisters, empties the meeple dict, gameState <- FinishedState (detailed in PR-5)",
+      "lane": "server",
+      "description": "Cross-reference to process PR-5; same broadcast channel (UpdateGameState) carries the finished game to all clients.",
+      "code_ref": [
+        "src/Backend.elm:76-84",
+        "src/Helpers/GameLogic.elm:511-556"
+      ],
+      "detail": {
+        "kind": "action"
+      }
+    },
+    {
+      "id": "PR-2-N20",
+      "kind": "action",
+      "name": "Lamdera broadcast UpdateGameState to all clients",
+      "process_id": "PR-2",
+      "label": "Lamdera broadcast (UpdateGameState { game = updatedGame }) to all connected clients",
+      "lane": "external",
+      "description": "Emitted by both the refill and the finishGame branch.",
+      "code_ref": [
+        "src/Backend.elm:73",
+        "src/Backend.elm:83",
+        "src/Backend.elm:6"
+      ],
+      "detail": {
+        "kind": "action"
+      }
+    },
+    {
+      "id": "PR-2-N21",
+      "kind": "action",
+      "name": "Clients apply the new game state",
+      "process_id": "PR-2",
+      "label": "All clients: updateFromBackend replaces FeGamePlayed.game (new scores, new currentPlayer, new tileToPlace or finished game)",
+      "lane": "client",
+      "description": "Same convergence point as PR-1.",
+      "code_ref": [
+        "src/Frontend.elm:143-150"
+      ],
+      "detail": {
+        "kind": "action"
+      }
+    },
+    {
+      "id": "PR-2-N22",
+      "kind": "decision",
+      "name": "Is gameState now FinishedState?",
+      "process_id": "PR-2",
+      "label": "Decision (client re-render): is the received game in FinishedState or PlaceTileState? (case game.gameState of ...)",
+      "lane": "client",
+      "description": "renderGameView switches on gameState; the sidebar shows final scores or the next player's '(Now playing)'.",
+      "code_ref": [
+        "src/Views/GameView.elm:28-29",
+        "src/Types/GameState.elm:4-7"
+      ],
+      "detail": {
+        "kind": "decision"
+      }
+    },
+    {
+      "id": "PR-2-N23",
+      "kind": "end",
+      "name": "End: game over (FinishedState)",
+      "process_id": "PR-2",
+      "label": "End: gameState == FinishedState - final board and scores rendered, no further moves possible (PR-5)",
+      "lane": "client",
+      "description": "Final state: game over.",
+      "code_ref": [
+        "src/Views/GameView.elm:159-194"
+      ],
+      "detail": {
+        "kind": "end"
+      }
+    },
+    {
+      "id": "PR-2-N24",
+      "kind": "end",
+      "name": "End: turn loop continues (PlaceTileState)",
+      "process_id": "PR-2",
+      "label": "End: gameState == PlaceTileState - turn loop continues: the (next) player places the newly drawn tile (PR-1)",
+      "lane": "client",
+      "description": "Final state: one full turn completed.",
+      "code_ref": [
+        "src/Helpers/GameLogic.elm:502-508",
+        "src/Views/GameView.elm:28-90"
+      ],
+      "detail": {
+        "kind": "end"
+      }
+    },
+    {
+      "id": "PR-2-N25",
+      "kind": "end",
+      "name": "End (no-op): blocked client-side",
+      "process_id": "PR-2",
+      "label": "End (no message): meeple placement blocked client-side (not your turn / position not offerable and Skip not clicked) - game state unchanged",
+      "lane": "client",
+      "description": "Final state: identical to start.",
+      "code_ref": [
+        "src/Views/GameView.elm:140-141",
+        "src/Views/GameView.elm:538-539"
+      ],
+      "detail": {
+        "kind": "end"
+      }
+    },
+    {
+      "id": "PR-2-N26",
+      "kind": "end",
+      "name": "End (no-op): server dropped the message",
+      "process_id": "PR-2",
+      "label": "End (no-op): backend model unchanged (Cmd.none), client never receives a reply",
+      "lane": "server",
+      "description": "Final state: backend model identical.",
+      "code_ref": [
+        "src/Backend.elm:185-186"
+      ],
+      "detail": {
+        "kind": "end"
+      }
+    },
+    {
+      "id": "PR-2-E1",
+      "kind": "edge",
+      "name": "N1 -> N2",
+      "process_id": "PR-2",
+      "from": "PR-2-N1",
+      "to": "PR-2-N2",
+      "guard": null,
+      "code_ref": [
+        "src/Views/GameView.elm:92-93"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-2-E2",
+      "kind": "edge",
+      "name": "N2 -> N3 (not current player)",
+      "process_id": "PR-2",
+      "from": "PR-2-N2",
+      "to": "PR-2-N3",
+      "guard": "playerName /= currentPlayerName (else branch of `if playerName == currentPlayerName`)",
+      "code_ref": [
+        "src/Views/GameView.elm:121",
+        "src/Views/GameView.elm:140-141"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-2-E3",
+      "kind": "edge",
+      "name": "N2 -> N4 (current player)",
+      "process_id": "PR-2",
+      "from": "PR-2-N2",
+      "to": "PR-2-N4",
+      "guard": "playerName == currentPlayerName",
+      "code_ref": [
+        "src/Views/GameView.elm:121-129"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-2-E4",
+      "kind": "edge",
+      "name": "N3 -> N25",
+      "process_id": "PR-2",
+      "from": "PR-2-N3",
+      "to": "PR-2-N25",
+      "guard": null,
+      "code_ref": [
+        "src/Views/GameView.elm:140-141"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-2-E5",
+      "kind": "edge",
+      "name": "N4 -> N5",
+      "process_id": "PR-2",
+      "from": "PR-2-N4",
+      "to": "PR-2-N5",
+      "guard": null,
+      "code_ref": [
+        "src/Views/GameView.elm:131-138",
+        "src/Views/GameView.elm:524-526"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-2-E6",
+      "kind": "edge",
+      "name": "N5 -> N6 (not offerable)",
+      "process_id": "PR-2",
+      "from": "PR-2-N5",
+      "to": "PR-2-N6",
+      "guard": "not (List.member position positionsToBePlacedOn)",
+      "code_ref": [
+        "src/Views/GameView.elm:526",
+        "src/Views/GameView.elm:538-539"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-2-E7",
+      "kind": "edge",
+      "name": "N5 -> N7 (offerable, clicked)",
+      "process_id": "PR-2",
+      "from": "PR-2-N5",
+      "to": "PR-2-N7",
+      "guard": "List.member position positionsToBePlacedOn and the circle is clicked",
+      "code_ref": [
+        "src/Views/GameView.elm:526-534"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-2-E8",
+      "kind": "edge",
+      "name": "N6 -> N7 (Skip clicked)",
+      "process_id": "PR-2",
+      "from": "PR-2-N6",
+      "to": "PR-2-N7",
+      "guard": null,
+      "code_ref": [
+        "src/Views/GameView.elm:382-396",
+        "src/Helpers/FrontendHelpers.elm:42-43"
+      ],
+      "detail": {
+        "note": "player clicks 'Skip Meeple placement' (position = Skip; the only option when playerMeeples[player] == 0)"
+      }
+    },
+    {
+      "id": "PR-2-E9",
+      "kind": "edge",
+      "name": "N7 -> N8",
+      "process_id": "PR-2",
+      "from": "PR-2-N7",
+      "to": "PR-2-N8",
+      "guard": null,
+      "code_ref": [
+        "src/Frontend.elm:79-80"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-2-E10",
+      "kind": "edge",
+      "name": "N8 -> N9",
+      "process_id": "PR-2",
+      "from": "PR-2-N8",
+      "to": "PR-2-N9",
+      "guard": null,
+      "code_ref": [
+        "src/Backend.elm:90-92",
+        "src/Backend.elm:170"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-2-E11",
+      "kind": "edge",
+      "name": "N9 -> N10 (wrong state)",
+      "process_id": "PR-2",
+      "from": "PR-2-N9",
+      "to": "PR-2-N10",
+      "guard": "no match: catch-all `_ -> ( model, Cmd.none )` (model is not BeGamePlayed)",
+      "code_ref": [
+        "src/Backend.elm:185-186"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-2-E12",
+      "kind": "edge",
+      "name": "N9 -> N11 (match)",
+      "process_id": "PR-2",
+      "from": "PR-2-N9",
+      "to": "PR-2-N11",
+      "guard": "( PlaceMeeple position, BeGamePlayed { game } ) matches",
+      "code_ref": [
+        "src/Backend.elm:170-174"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-2-E13",
+      "kind": "edge",
+      "name": "N10 -> N26",
+      "process_id": "PR-2",
+      "from": "PR-2-N10",
+      "to": "PR-2-N26",
+      "guard": null,
+      "code_ref": [
+        "src/Backend.elm:185-186"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-2-E14",
+      "kind": "edge",
+      "name": "N11 -> N12",
+      "process_id": "PR-2",
+      "from": "PR-2-N11",
+      "to": "PR-2-N12",
+      "guard": null,
+      "code_ref": [
+        "src/Helpers/GameLogic.elm:418-420"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-2-E15",
+      "kind": "edge",
+      "name": "N12 -> N13 (finished features exist)",
+      "process_id": "PR-2",
+      "from": "PR-2-N12",
+      "to": "PR-2-N13",
+      "guard": "at least one sideId passes isFeatureFinished (filter result non-empty)",
+      "code_ref": [
+        "src/Helpers/GameLogic.elm:421-422"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-2-E16",
+      "kind": "edge",
+      "name": "N12 -> N15 (no finished feature)",
+      "process_id": "PR-2",
+      "from": "PR-2-N12",
+      "to": "PR-2-N15",
+      "guard": "no sideId passes isFeatureFinished (filter result empty - nothing scored, nothing returned)",
+      "code_ref": [
+        "src/Helpers/GameLogic.elm:421-422",
+        "src/Helpers/GameLogic.elm:193-203"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-2-E17",
+      "kind": "edge",
+      "name": "N13 -> N14 (2x city bonus)",
+      "process_id": "PR-2",
+      "from": "PR-2-N13",
+      "to": "PR-2-N14",
+      "guard": "score > 2 && getSideIdFeature sideId game.tileGrid == City -> ( sideId, 2 * score )",
+      "code_ref": [
+        "src/Helpers/GameLogic.elm:431-432"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-2-E18",
+      "kind": "edge",
+      "name": "N13 -> N14 (1x score)",
+      "process_id": "PR-2",
+      "from": "PR-2-N13",
+      "to": "PR-2-N14",
+      "guard": "otherwise -> ( sideId, score )",
+      "code_ref": [
+        "src/Helpers/GameLogic.elm:434-435"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-2-E19",
+      "kind": "edge",
+      "name": "N14 -> N15",
+      "process_id": "PR-2",
+      "from": "PR-2-N14",
+      "to": "PR-2-N15",
+      "guard": null,
+      "code_ref": [
+        "src/Helpers/GameLogic.elm:440-442"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-2-E20",
+      "kind": "edge",
+      "name": "N15 -> N16",
+      "process_id": "PR-2",
+      "from": "PR-2-N15",
+      "to": "PR-2-N16",
+      "guard": null,
+      "code_ref": [
+        "src/Backend.elm:176-177"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-2-E21",
+      "kind": "edge",
+      "name": "N16 -> N17 (cmd re-enters update)",
+      "process_id": "PR-2",
+      "from": "PR-2-N16",
+      "to": "PR-2-N17",
+      "guard": null,
+      "code_ref": [
+        "src/Backend.elm:37-38",
+        "src/Backend.elm:61-62"
+      ],
+      "detail": {
+        "note": "Elm runtime delivers the shuffled stack as BackendMsg TileDrawStackShuffled into Backend.update (async re-entry)"
+      }
+    },
+    {
+      "id": "PR-2-E22",
+      "kind": "edge",
+      "name": "N17 -> N18 (playable tile)",
+      "process_id": "PR-2",
+      "from": "PR-2-N17",
+      "to": "PR-2-N18",
+      "guard": "( Just nextTileId, drawStack )",
+      "code_ref": [
+        "src/Backend.elm:63-64"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-2-E23",
+      "kind": "edge",
+      "name": "N17 -> N19 (no playable tile)",
+      "process_id": "PR-2",
+      "from": "PR-2-N17",
+      "to": "PR-2-N19",
+      "guard": "( Nothing, _ )",
+      "code_ref": [
+        "src/Backend.elm:76-77"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-2-E24",
+      "kind": "edge",
+      "name": "N18 -> N20",
+      "process_id": "PR-2",
+      "from": "PR-2-N18",
+      "to": "PR-2-N20",
+      "guard": null,
+      "code_ref": [
+        "src/Backend.elm:72-74"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-2-E25",
+      "kind": "edge",
+      "name": "N19 -> N20",
+      "process_id": "PR-2",
+      "from": "PR-2-N19",
+      "to": "PR-2-N20",
+      "guard": null,
+      "code_ref": [
+        "src/Backend.elm:82-84"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-2-E26",
+      "kind": "edge",
+      "name": "N20 -> N21",
+      "process_id": "PR-2",
+      "from": "PR-2-N20",
+      "to": "PR-2-N21",
+      "guard": null,
+      "code_ref": [
+        "src/Backend.elm:73",
+        "src/Frontend.elm:143-144"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-2-E27",
+      "kind": "edge",
+      "name": "N21 -> N22",
+      "process_id": "PR-2",
+      "from": "PR-2-N21",
+      "to": "PR-2-N22",
+      "guard": null,
+      "code_ref": [
+        "src/Frontend.elm:168-169",
+        "src/Views/GameView.elm:28-29"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-2-E28",
+      "kind": "edge",
+      "name": "N22 -> N23 (finished)",
+      "process_id": "PR-2",
+      "from": "PR-2-N22",
+      "to": "PR-2-N23",
+      "guard": "game.gameState == FinishedState",
+      "code_ref": [
+        "src/Views/GameView.elm:159"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-2-E29",
+      "kind": "edge",
+      "name": "N22 -> N24 (game continues)",
+      "process_id": "PR-2",
+      "from": "PR-2-N22",
+      "to": "PR-2-N24",
+      "guard": "game.gameState == PlaceTileState",
+      "code_ref": [
+        "src/Views/GameView.elm:29"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-3",
+      "kind": "process",
+      "name": "Game initialization with shuffled tile draw (lobby -> game)",
+      "description": "Lobby-to-game transition. Any lobby player clicks 'Start'; the backend builds the game with initializeGame (71-tile draw stack from initializeDrawStack, starting grid with tile 0 at (0,0), 7 meeples per player, currentPlayer 0, PlaceTileState), switches BackendModel to BeGamePlayed and issues Random.generate InitializeGameAndTileDrawStackShuffled over the shuffled draw stack (async re-entry). On re-entry, getPlayableTileFromDrawstack skips unplaceable tiles to pick the FIRST playable tile (or falls back to tile 0 - 'First move should be always possible'), then broadcasts GameInitialized so every lobby client switches to the game view. Initial state: FeLobby / BePlayerRegistration with 1..5 registered players. Final state: BeGamePlayed with PlaceTileState and a drawn first tile, or unchanged state if the backend was not in the lobby. No fork/join nodes: Elm updates are sequential; broadcast is one fan-out action on the external lane.",
+      "code_ref": [
+        "src/Views/PlayerLobbyView.elm:20-23",
+        "src/Frontend.elm:67-68",
+        "src/Backend.elm:140-148",
+        "src/Backend.elm:44-59",
+        "src/Types/Game.elm:53-73"
+      ],
+      "detail": {
+        "lanes": [
+          "client",
+          "server",
+          "external"
+        ],
+        "lane_legend": {
+          "client": "Player's browser: src/Views/PlayerLobbyView.elm (render + Html event handlers) and src/Frontend.elm (update / updateFromBackend / view).",
+          "server": "Lamdera backend: src/Backend.elm (updateFromFrontend + update for the shuffle re-entry) + src/Types/Game.elm (initializeGame), src/Helpers/TileMapper.elm, src/Helpers/FrontendHelpers.elm.",
+          "external": "Lamdera platform + Elm runtime: Random cmd execution and Cmd-channel re-entry (BackendMsg InitializeGameAndTileDrawStackShuffled, src/Backend.elm:147 -> 44) plus Lamdera broadcast fan-out (src/Backend.elm:6).",
+          "database": "N/A - no database or persistence; all state lives in-memory in the Lamdera backend model (BackendModel, src/Types.elm:11-17)."
+        },
+        "start": "PR-3-N1",
+        "ends": [
+          "PR-3-N14",
+          "PR-3-N15"
+        ],
+        "error_paths": [
+          "Backend not in BePlayerRegistration state: InitializeGame dropped, Cmd.none (src/Backend.elm:185-186)",
+          "First draw: no playable tile in the shuffled stack (should not happen): tileToPlace falls back to getTile (Maybe.withDefault 0) - tile 0 (src/Backend.elm:52, 56-57)"
+        ]
+      }
+    },
+    {
+      "id": "PR-3-N1",
+      "kind": "start",
+      "name": "Start: FeLobby with registered players",
+      "process_id": "PR-3",
+      "label": "Start: client(s) in FeLobby (1-5 registered players; playerLimit = 5); backend in BePlayerRegistration { players }",
+      "lane": "client",
+      "description": "Initial state: players have registered (PR-4); lobby view shows the player list and a 'Start' button.",
+      "code_ref": [
+        "src/Types.elm:25-28",
+        "src/Frontend.elm:165-166",
+        "src/Views/PlayerLobbyView.elm:11-24",
+        "src/Types/Game.elm:43-45"
+      ],
+      "detail": {
+        "kind": "start"
+      }
+    },
+    {
+      "id": "PR-3-N2",
+      "kind": "action",
+      "name": "Click 'Start' fires FeInitializeGame",
+      "process_id": "PR-3",
+      "label": "A lobby player clicks 'Start': onClick fires FrontendMsg FeInitializeGame",
+      "lane": "client",
+      "description": "Entry point cited by planner: PlayerLobbyView.elm:21.",
+      "code_ref": [
+        "src/Views/PlayerLobbyView.elm:20-23"
+      ],
+      "detail": {
+        "kind": "action"
+      }
+    },
+    {
+      "id": "PR-3-N3",
+      "kind": "action",
+      "name": "Frontend.update sends InitializeGame to backend",
+      "process_id": "PR-3",
+      "label": "Frontend.update: sendToBackend InitializeGame",
+      "lane": "client",
+      "description": "Local model unchanged (stays FeLobby) until the broadcast arrives.",
+      "code_ref": [
+        "src/Frontend.elm:67-68",
+        "src/Types.elm:54"
+      ],
+      "detail": {
+        "kind": "action"
+      }
+    },
+    {
+      "id": "PR-3-N4",
+      "kind": "decision",
+      "name": "Is the backend in BePlayerRegistration state?",
+      "process_id": "PR-3",
+      "label": "Decision (server): does (InitializeGame, model) match (InitializeGame, BePlayerRegistration { players })?",
+      "lane": "server",
+      "description": "updateFromFrontend pattern match; a second 'Start' click arriving while the game already runs falls through to the catch-all.",
+      "code_ref": [
+        "src/Backend.elm:140",
+        "src/Backend.elm:185-186"
+      ],
+      "detail": {
+        "kind": "decision"
+      }
+    },
+    {
+      "id": "PR-3-N5",
+      "kind": "action",
+      "name": "Wrong state: message ignored",
+      "process_id": "PR-3",
+      "label": "Wrong backend state: InitializeGame ignored, model unchanged, Cmd.none (e.g. double Start click during BeGamePlayed)",
+      "lane": "server",
+      "description": "Error path: silent drop.",
+      "code_ref": [
+        "src/Backend.elm:185-186"
+      ],
+      "detail": {
+        "kind": "action"
+      }
+    },
+    {
+      "id": "PR-3-N6",
+      "kind": "action",
+      "name": "initializeGame: build the game",
+      "process_id": "PR-3",
+      "label": "initializeGame players: build the Game - 71-tile draw stack (initializeDrawStack), starting grid with tile 0 at (0,0), playerScores 0 and playerMeeples 7 per player, players array, currentPlayer 0, nextSideId from the grid, gameState PlaceTileState; BackendModel <- BeGamePlayed { game }",
+      "lane": "server",
+      "description": "tileToPlace is a placeholder (getTile 0) - it is replaced by the random first draw below. Doc comment: 'Players list must not be empty' (no explicit guard for empty lists).",
+      "code_ref": [
+        "src/Backend.elm:140-146",
+        "src/Types/Game.elm:53-73",
+        "src/Types/Game.elm:120-147",
+        "src/Types/Game.elm:102-104"
+      ],
+      "detail": {
+        "kind": "action"
+      }
+    },
+    {
+      "id": "PR-3-N7",
+      "kind": "action",
+      "name": "Random cmd issued: InitializeGameAndTileDrawStackShuffled re-entry",
+      "process_id": "PR-3",
+      "label": "Async re-entry: Random.generate InitializeGameAndTileDrawStackShuffled (Random.List.shuffle game.tileDrawStack) - the Elm runtime executes the shuffle cmd, then the shuffled stack re-enters Backend.update as BackendMsg InitializeGameAndTileDrawStackShuffled",
+      "lane": "server",
+      "description": "Genuine asynchronous re-entry (Elm Cmd channel); the backend already holds BeGamePlayed before the shuffled stack arrives.",
+      "code_ref": [
+        "src/Backend.elm:147",
+        "src/Backend.elm:37-38",
+        "src/Types.elm:63"
+      ],
+      "detail": {
+        "kind": "action"
+      }
+    },
+    {
+      "id": "PR-3-N8",
+      "kind": "decision",
+      "name": "First draw: playable tile in shuffled stack?",
+      "process_id": "PR-3",
+      "label": "Decision (first-draw re-entry): does the shuffled draw stack contain a tile playable anywhere? (getPlayableTileFromDrawstack game.tileGrid shuffled -> (Just first, rest) | (Nothing, _); playability = tileCanBePlacedAnywhere across 4 rotations)",
+      "lane": "server",
+      "description": "Unplaceable tiles at the top of the stack are skipped and dropped during the first draw as well.",
+      "code_ref": [
+        "src/Backend.elm:44-47",
+        "src/Helpers/FrontendHelpers.elm:132-143",
+        "src/Helpers/FrontendHelpers.elm:120-127"
+      ],
+      "detail": {
+        "kind": "decision"
+      }
+    },
+    {
+      "id": "PR-3-N9",
+      "kind": "action",
+      "name": "First playable tile chosen",
+      "process_id": "PR-3",
+      "label": "Playable first tile: tileToPlace <- getTile first; tileDrawStack <- remaining tiles",
+      "lane": "server",
+      "description": "getTile resolves the tile id to a full Tile from the hardcoded tile table.",
+      "code_ref": [
+        "src/Helpers/FrontendHelpers.elm:136-137",
+        "src/Backend.elm:49-54",
+        "src/Helpers/TileMapper.elm:9-10"
+      ],
+      "detail": {
+        "kind": "action"
+      }
+    },
+    {
+      "id": "PR-3-N10",
+      "kind": "action",
+      "name": "No playable tile: fallback to tile 0",
+      "process_id": "PR-3",
+      "label": "No playable tile (should not happen for the first draw): tileToPlace <- getTile (Maybe.withDefault 0 maybeNextTileId) - fallback to tile 0; code comment: 'First move should be always possible'",
+      "lane": "server",
+      "description": "Error/degenerate path: the game still starts, with the default starting tile.",
+      "code_ref": [
+        "src/Backend.elm:52",
+        "src/Backend.elm:56-57"
+      ],
+      "detail": {
+        "kind": "action"
+      }
+    },
+    {
+      "id": "PR-3-N11",
+      "kind": "action",
+      "name": "Lamdera broadcast GameInitialized to all clients",
+      "process_id": "PR-3",
+      "label": "Lamdera broadcast (GameInitialized { game = updatedGame }) to all connected clients",
+      "lane": "external",
+      "description": "Every lobby client receives the initialized game.",
+      "code_ref": [
+        "src/Backend.elm:58-59",
+        "src/Backend.elm:6"
+      ],
+      "detail": {
+        "kind": "action"
+      }
+    },
+    {
+      "id": "PR-3-N12",
+      "kind": "action",
+      "name": "Clients switch FeLobby -> FeGamePlayed",
+      "process_id": "PR-3",
+      "label": "All lobby clients: updateFromBackend (GameInitialized { game }, FeLobby { playerName }) -> FeGamePlayed { playerName, debugMode = False, game }",
+      "lane": "client",
+      "description": "The (GameInitialized, FeLobby) case; clients already in another state hit the catch-all and stay unchanged.",
+      "code_ref": [
+        "src/Frontend.elm:134-141",
+        "src/Frontend.elm:155-156"
+      ],
+      "detail": {
+        "kind": "action"
+      }
+    },
+    {
+      "id": "PR-3-N13",
+      "kind": "action",
+      "name": "Render the game view (PlaceTileState)",
+      "process_id": "PR-3",
+      "label": "Render game view: PlaceTileState board with placeable overlay for the first player, drawn first tile shown in the sidebar, 'Now playing' on player 0 in the scoreboard",
+      "lane": "client",
+      "description": "view model -> renderGameView -> PlaceTileState branch.",
+      "code_ref": [
+        "src/Frontend.elm:168-169",
+        "src/Views/GameView.elm:28-90",
+        "src/Views/GameView.elm:686-693"
+      ],
+      "detail": {
+        "kind": "action"
+      }
+    },
+    {
+      "id": "PR-3-N14",
+      "kind": "end",
+      "name": "End: game in progress",
+      "process_id": "PR-3",
+      "label": "End: game in progress - player index 0 places the first tile (PR-1)",
+      "lane": "client",
+      "description": "Final state: BeGamePlayed / FeGamePlayed with PlaceTileState.",
+      "code_ref": [
+        "src/Types/Game.elm:63-67"
+      ],
+      "detail": {
+        "kind": "end"
+      }
+    },
+    {
+      "id": "PR-3-N15",
+      "kind": "end",
+      "name": "End (no-op): server dropped the message",
+      "process_id": "PR-3",
+      "label": "End (no-op): backend model unchanged (Cmd.none); clients stay in the lobby",
+      "lane": "server",
+      "description": "Final state: identical to start.",
+      "code_ref": [
+        "src/Backend.elm:185-186"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-3-E1",
+      "kind": "edge",
+      "name": "N1 -> N2",
+      "process_id": "PR-3",
+      "from": "PR-3-N1",
+      "to": "PR-3-N2",
+      "guard": null,
+      "code_ref": [
+        "src/Views/PlayerLobbyView.elm:20-23"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-3-E2",
+      "kind": "edge",
+      "name": "N2 -> N3",
+      "process_id": "PR-3",
+      "from": "PR-3-N2",
+      "to": "PR-3-N3",
+      "guard": null,
+      "code_ref": [
+        "src/Frontend.elm:67-68"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-3-E3",
+      "kind": "edge",
+      "name": "N3 -> N4",
+      "process_id": "PR-3",
+      "from": "PR-3-N3",
+      "to": "PR-3-N4",
+      "guard": null,
+      "code_ref": [
+        "src/Backend.elm:90-92",
+        "src/Backend.elm:140"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-3-E4",
+      "kind": "edge",
+      "name": "N4 -> N5 (wrong state)",
+      "process_id": "PR-3",
+      "from": "PR-3-N4",
+      "to": "PR-3-N5",
+      "guard": "no match: catch-all `_ -> ( model, Cmd.none )` (model is not BePlayerRegistration)",
+      "code_ref": [
+        "src/Backend.elm:185-186"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-3-E5",
+      "kind": "edge",
+      "name": "N4 -> N6 (match)",
+      "process_id": "PR-3",
+      "from": "PR-3-N4",
+      "to": "PR-3-N6",
+      "guard": "( InitializeGame, BePlayerRegistration { players } ) matches",
+      "code_ref": [
+        "src/Backend.elm:140-145"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-3-E6",
+      "kind": "edge",
+      "name": "N5 -> N15",
+      "process_id": "PR-3",
+      "from": "PR-3-N5",
+      "to": "PR-3-N15",
+      "guard": null,
+      "code_ref": [
+        "src/Backend.elm:185-186"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-3-E7",
+      "kind": "edge",
+      "name": "N6 -> N7",
+      "process_id": "PR-3",
+      "from": "PR-3-N6",
+      "to": "PR-3-N7",
+      "guard": null,
+      "code_ref": [
+        "src/Backend.elm:146-148"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-3-E8",
+      "kind": "edge",
+      "name": "N7 -> N8 (cmd re-enters update)",
+      "process_id": "PR-3",
+      "from": "PR-3-N7",
+      "to": "PR-3-N8",
+      "guard": null,
+      "code_ref": [
+        "src/Backend.elm:37-38",
+        "src/Backend.elm:44-45"
+      ],
+      "detail": {
+        "note": "Elm runtime delivers the shuffled stack as BackendMsg InitializeGameAndTileDrawStackShuffled into Backend.update (async re-entry)"
+      }
+    },
+    {
+      "id": "PR-3-E9",
+      "kind": "edge",
+      "name": "N8 -> N9 (playable first tile)",
+      "process_id": "PR-3",
+      "from": "PR-3-N8",
+      "to": "PR-3-N9",
+      "guard": "( Just first, rest ) from getPlayableTileFromDrawstack",
+      "code_ref": [
+        "src/Helpers/FrontendHelpers.elm:136-137"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-3-E10",
+      "kind": "edge",
+      "name": "N8 -> N10 (no playable tile)",
+      "process_id": "PR-3",
+      "from": "PR-3-N8",
+      "to": "PR-3-N10",
+      "guard": "( Nothing, _ ) from getPlayableTileFromDrawstack (empty stack)",
+      "code_ref": [
+        "src/Helpers/FrontendHelpers.elm:142-143",
+        "src/Backend.elm:52"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-3-E11",
+      "kind": "edge",
+      "name": "N9 -> N11",
+      "process_id": "PR-3",
+      "from": "PR-3-N9",
+      "to": "PR-3-N11",
+      "guard": null,
+      "code_ref": [
+        "src/Backend.elm:55-59"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-3-E12",
+      "kind": "edge",
+      "name": "N10 -> N11",
+      "process_id": "PR-3",
+      "from": "PR-3-N10",
+      "to": "PR-3-N11",
+      "guard": null,
+      "code_ref": [
+        "src/Backend.elm:55-59"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-3-E13",
+      "kind": "edge",
+      "name": "N11 -> N12",
+      "process_id": "PR-3",
+      "from": "PR-3-N11",
+      "to": "PR-3-N12",
+      "guard": null,
+      "code_ref": [
+        "src/Backend.elm:58",
+        "src/Frontend.elm:134-135"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-3-E14",
+      "kind": "edge",
+      "name": "N12 -> N13",
+      "process_id": "PR-3",
+      "from": "PR-3-N12",
+      "to": "PR-3-N13",
+      "guard": null,
+      "code_ref": [
+        "src/Frontend.elm:168-169"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-3-E15",
+      "kind": "edge",
+      "name": "N13 -> N14",
+      "process_id": "PR-3",
+      "from": "PR-3-N13",
+      "to": "PR-3-N14",
+      "guard": null,
+      "code_ref": [
+        "src/Types/Game.elm:63-67"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-4",
+      "kind": "process",
+      "name": "Player registration and lobby join",
+      "description": "A fresh client (init -> FePlayerRegistration on page load; the Lamdera ClientConnected hook only feeds lobby updates to already-registered clients) submits a name. Client-side: the trimmed name must be non-empty. Server-side: duplicate names are rejected (the requesting client is sent the EXISTING player list via sendToFrontend with no explicit error - it simply sees the unchanged lobby) and a full lobby (playerLimit = 5) is rejected with LobbyIsFull, which kicks the requesting client back to the registration form with a 'Lobby is full.' error and a 'Kill lobby' button. On success the player is appended and the updated list is broadcast to all clients, which re-render the lobby. Initial state: FePlayerRegistration. Final states: FeLobby with updated list (success / duplicate) or FePlayerRegistration with an error (empty name / lobby full). No fork/join nodes: Elm updates are sequential; sendToFrontend/broadcast are single fan-out actions on the external lane.",
+      "code_ref": [
+        "src/Views/PlayerRegistrationView.elm:11-46",
+        "src/Frontend.elm:50-62",
+        "src/Backend.elm:93-118"
+      ],
+      "detail": {
+        "lanes": [
+          "client",
+          "server",
+          "external"
+        ],
+        "lane_legend": {
+          "client": "Player's browser: src/Views/PlayerRegistrationView.elm + src/Views/PlayerLobbyView.elm (render + Html event handlers) and src/Frontend.elm (update / updateFromBackend / view).",
+          "server": "Lamdera backend: src/Backend.elm updateFromFrontend (BePlayerRegistration branch) + src/Types/Game.elm (playerLimit).",
+          "external": "Lamdera platform: sendToFrontend (single-client) and broadcast (all-clients) fan-out (src/Backend.elm:6); also the Lamdera onConnect subscription delivering ClientConnected (src/Backend.elm:189-191).",
+          "database": "N/A - no database or persistence; all state lives in-memory in the Lamdera backend model (BackendModel, src/Types.elm:11-17)."
+        },
+        "start": "PR-4-N1",
+        "ends": [
+          "PR-4-N13",
+          "PR-4-N14",
+          "PR-4-N15",
+          "PR-4-N16"
+        ],
+        "error_paths": [
+          "Empty/whitespace name: client-side error 'Name cannot be empty.', no backend call (src/Frontend.elm:56-57)",
+          "Duplicate name: server-side List.member check; the client is only sent the existing player list (sendToFrontend, no explicit duplicate error) (src/Backend.elm:95-102)",
+          "Lobby full (more than playerLimit = 5): server-side length check; LobbyIsFull sent back, client reverts to registration with 'Lobby is full.' + 'Kill lobby' button (src/Backend.elm:110-118, src/Frontend.elm:112-115, src/Views/PlayerRegistrationView.elm:29-37)"
+        ]
+      }
+    },
+    {
+      "id": "PR-4-N1",
+      "kind": "start",
+      "name": "Start: registration form",
+      "process_id": "PR-4",
+      "label": "Start: fresh client at FePlayerRegistration { nameInput, error = Nothing } (init on page load); name input + 'Join' button rendered",
+      "lane": "client",
+      "description": "Frontend init; input keystrokes drive NameInputChanged which clears any previous error. (A client that CONNECTS mid-lobby only gets a PlayerRegistrationUpdated msg if it is already in FeLobby - see Backend.elm:40-42.)",
+      "code_ref": [
+        "src/Frontend.elm:34-41",
+        "src/Frontend.elm:47-48",
+        "src/Frontend.elm:162-163",
+        "src/Views/PlayerRegistrationView.elm:11-28",
+        "src/Backend.elm:40-42"
+      ],
+      "detail": {
+        "kind": "start"
+      }
+    },
+    {
+      "id": "PR-4-N2",
+      "kind": "decision",
+      "name": "Is the trimmed name non-empty?",
+      "process_id": "PR-4",
+      "label": "Decision (client): is the trimmed name non-empty? (if String.isEmpty trimmedPlayerName where trimmedPlayerName = String.trim nameInput)",
+      "lane": "client",
+      "description": "Client-side validation; both the form onSubmit and the 'Join' button produce the Register msg.",
+      "code_ref": [
+        "src/Frontend.elm:50-57",
+        "src/Views/PlayerRegistrationView.elm:15-27"
+      ],
+      "detail": {
+        "kind": "decision"
+      }
+    },
+    {
+      "id": "PR-4-N3",
+      "kind": "action",
+      "name": "Empty name: client-side error",
+      "process_id": "PR-4",
+      "label": "Empty name: error <- Just 'Name cannot be empty.'; stay in the registration form; no backend call. Error text rendered in the error box",
+      "lane": "client",
+      "description": "Error path enforced entirely in the browser.",
+      "code_ref": [
+        "src/Frontend.elm:56-57",
+        "src/Views/PlayerRegistrationView.elm:40-45"
+      ],
+      "detail": {
+        "kind": "action"
+      }
+    },
+    {
+      "id": "PR-4-N4",
+      "kind": "action",
+      "name": "Switch to FeLobby and send RegisterPlayer",
+      "process_id": "PR-4",
+      "label": "Non-empty name: local model <- FeLobby { playerName = trimmedName, players = [] }; sendToBackend (RegisterPlayer trimmedName)",
+      "lane": "client",
+      "description": "The client optimistically leaves the form before the server answers.",
+      "code_ref": [
+        "src/Frontend.elm:59-62",
+        "src/Types.elm:51"
+      ],
+      "detail": {
+        "kind": "action"
+      }
+    },
+    {
+      "id": "PR-4-N5",
+      "kind": "decision",
+      "name": "Does the name already exist?",
+      "process_id": "PR-4",
+      "label": "Decision (server): does the name already exist in the lobby? (List.member playerName players)",
+      "lane": "server",
+      "description": "Server-side duplicate check inside (RegisterPlayer, BePlayerRegistration).",
+      "code_ref": [
+        "src/Backend.elm:93-99"
+      ],
+      "detail": {
+        "kind": "decision"
+      }
+    },
+    {
+      "id": "PR-4-N6",
+      "kind": "action",
+      "name": "Duplicate name: rejected silently",
+      "process_id": "PR-4",
+      "label": "Duplicate name: model unchanged; sendToFrontend (ONLY the requesting client) PlayerRegistrationUpdated { players } - the client, already in FeLobby, is shown the existing player list with no explicit 'duplicate' error",
+      "lane": "server",
+      "description": "Error path: the rejection is visible only as 'the list did not change'; no dedicated error message exists for duplicates.",
+      "code_ref": [
+        "src/Backend.elm:99-102",
+        "src/Frontend.elm:95-96"
+      ],
+      "detail": {
+        "kind": "action"
+      }
+    },
+    {
+      "id": "PR-4-N7",
+      "kind": "decision",
+      "name": "Is the lobby full?",
+      "process_id": "PR-4",
+      "label": "Decision (server): would the lobby exceed the limit? (List.length newPlayers <= playerLimit where newPlayers = playerName :: players and playerLimit = 5)",
+      "lane": "server",
+      "description": "Server-side capacity check; the limit constant lives in Types/Game.elm.",
+      "code_ref": [
+        "src/Backend.elm:105-110",
+        "src/Types/Game.elm:43-45"
+      ],
+      "detail": {
+        "kind": "decision"
+      }
+    },
+    {
+      "id": "PR-4-N8",
+      "kind": "action",
+      "name": "Registration accepted: append player",
+      "process_id": "PR-4",
+      "label": "Registration accepted: players <- playerName :: players; model stays BePlayerRegistration",
+      "lane": "server",
+      "description": "Happy path state change.",
+      "code_ref": [
+        "src/Backend.elm:106-111"
+      ],
+      "detail": {
+        "kind": "action"
+      }
+    },
+    {
+      "id": "PR-4-N9",
+      "kind": "action",
+      "name": "Lobby full: send LobbyIsFull",
+      "process_id": "PR-4",
+      "label": "Lobby full: model unchanged (players stay at the limit); sendToFrontend (ONLY the requesting client) LobbyIsFull",
+      "lane": "server",
+      "description": "Error path: only the rejected client is informed.",
+      "code_ref": [
+        "src/Backend.elm:115-118"
+      ],
+      "detail": {
+        "kind": "action"
+      }
+    },
+    {
+      "id": "PR-4-N10",
+      "kind": "action",
+      "name": "Lamdera broadcast PlayerRegistrationUpdated",
+      "process_id": "PR-4",
+      "label": "Lamdera broadcast (PlayerRegistrationUpdated { players = newPlayers }) to all connected clients",
+      "lane": "external",
+      "description": "Fans the new lobby list out to every connected client.",
+      "code_ref": [
+        "src/Backend.elm:112",
+        "src/Backend.elm:6"
+      ],
+      "detail": {
+        "kind": "action"
+      }
+    },
+    {
+      "id": "PR-4-N11",
+      "kind": "action",
+      "name": "Lobby clients update their player list",
+      "process_id": "PR-4",
+      "label": "All clients in FeLobby: updateFromBackend replaces FeLobby.players; lobby view re-renders the (updated) player list with a red 'kick' link per player and the 'Start' button",
+      "lane": "client",
+      "description": "Convergence point for lobby updates.",
+      "code_ref": [
+        "src/Frontend.elm:95-96",
+        "src/Frontend.elm:165-166",
+        "src/Views/PlayerLobbyView.elm:11-39"
+      ],
+      "detail": {
+        "kind": "action"
+      }
+    },
+    {
+      "id": "PR-4-N12",
+      "kind": "action",
+      "name": "Rejected client reverts to registration form",
+      "process_id": "PR-4",
+      "label": "Requesting client (in FeLobby when LobbyIsFull arrives): model <- FePlayerRegistration { nameInput = playerName, error = Just 'Lobby is full.' }; the registration view additionally renders a 'Kill lobby' button for this error",
+      "lane": "client",
+      "description": "The only place the FeKillLobby button appears; clicking it sends KillLobby (Frontend.elm:85-86), which empties the lobby server-side (Backend.elm:135-138).",
+      "code_ref": [
+        "src/Frontend.elm:112-115",
+        "src/Views/PlayerRegistrationView.elm:29-37",
+        "src/Frontend.elm:85-86",
+        "src/Backend.elm:135-138"
+      ],
+      "detail": {
+        "kind": "action"
+      }
+    },
+    {
+      "id": "PR-4-N13",
+      "kind": "end",
+      "name": "End (rejected client-side): empty name",
+      "process_id": "PR-4",
+      "label": "End (rejected client-side): 'Name cannot be empty.' shown; registration form stays",
+      "lane": "client",
+      "description": "Final state: FePlayerRegistration with error.",
+      "code_ref": [
+        "src/Frontend.elm:56-57"
+      ],
+      "detail": {
+        "kind": "end"
+      }
+    },
+    {
+      "id": "PR-4-N14",
+      "kind": "end",
+      "name": "End (duplicate): shown existing lobby list",
+      "process_id": "PR-4",
+      "label": "End (duplicate name): client stays in the lobby view showing the existing player list (the name was not added)",
+      "lane": "client",
+      "description": "Final state: FeLobby with the pre-existing list; no explicit duplicate error.",
+      "code_ref": [
+        "src/Backend.elm:99-102",
+        "src/Frontend.elm:95-96"
+      ],
+      "detail": {
+        "kind": "end"
+      }
+    },
+    {
+      "id": "PR-4-N15",
+      "kind": "end",
+      "name": "End: registered in lobby",
+      "process_id": "PR-4",
+      "label": "End: player is registered - lobby view shows the updated list; 'Start' begins the game (PR-3)",
+      "lane": "client",
+      "description": "Final state: FeLobby with the new player appended.",
+      "code_ref": [
+        "src/Views/PlayerLobbyView.elm:20-23"
+      ],
+      "detail": {
+        "kind": "end"
+      }
+    },
+    {
+      "id": "PR-4-N16",
+      "kind": "end",
+      "name": "End (lobby full): error + Kill lobby button",
+      "process_id": "PR-4",
+      "label": "End (lobby full): 'Lobby is full.' error + 'Kill lobby' button shown in the registration form",
+      "lane": "client",
+      "description": "Final state: FePlayerRegistration with the full-lobby error.",
+      "code_ref": [
+        "src/Frontend.elm:107-115",
+        "src/Views/PlayerRegistrationView.elm:29-37"
+      ],
+      "detail": {
+        "kind": "end"
+      }
+    },
+    {
+      "id": "PR-4-E1",
+      "kind": "edge",
+      "name": "N1 -> N2",
+      "process_id": "PR-4",
+      "from": "PR-4-N1",
+      "to": "PR-4-N2",
+      "guard": null,
+      "code_ref": [
+        "src/Views/PlayerRegistrationView.elm:15-27"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-4-E2",
+      "kind": "edge",
+      "name": "N2 -> N3 (empty name)",
+      "process_id": "PR-4",
+      "from": "PR-4-N2",
+      "to": "PR-4-N3",
+      "guard": "String.isEmpty (String.trim nameInput)",
+      "code_ref": [
+        "src/Frontend.elm:52-57"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-4-E3",
+      "kind": "edge",
+      "name": "N2 -> N4 (non-empty name)",
+      "process_id": "PR-4",
+      "from": "PR-4-N2",
+      "to": "PR-4-N4",
+      "guard": "trimmed name non-empty",
+      "code_ref": [
+        "src/Frontend.elm:59-62"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-4-E4",
+      "kind": "edge",
+      "name": "N3 -> N13",
+      "process_id": "PR-4",
+      "from": "PR-4-N3",
+      "to": "PR-4-N13",
+      "guard": null,
+      "code_ref": [
+        "src/Frontend.elm:57"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-4-E5",
+      "kind": "edge",
+      "name": "N4 -> N5",
+      "process_id": "PR-4",
+      "from": "PR-4-N4",
+      "to": "PR-4-N5",
+      "guard": null,
+      "code_ref": [
+        "src/Backend.elm:90-92",
+        "src/Backend.elm:93"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-4-E6",
+      "kind": "edge",
+      "name": "N5 -> N6 (duplicate)",
+      "process_id": "PR-4",
+      "from": "PR-4-N5",
+      "to": "PR-4-N6",
+      "guard": "List.member playerName players (nameExists == True)",
+      "code_ref": [
+        "src/Backend.elm:95-99"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-4-E7",
+      "kind": "edge",
+      "name": "N5 -> N7 (new name)",
+      "process_id": "PR-4",
+      "from": "PR-4-N5",
+      "to": "PR-4-N7",
+      "guard": "not (List.member playerName players)",
+      "code_ref": [
+        "src/Backend.elm:99-104"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-4-E8",
+      "kind": "edge",
+      "name": "N6 -> N14",
+      "process_id": "PR-4",
+      "from": "PR-4-N6",
+      "to": "PR-4-N14",
+      "guard": null,
+      "code_ref": [
+        "src/Backend.elm:100-102",
+        "src/Frontend.elm:95-96"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-4-E9",
+      "kind": "edge",
+      "name": "N7 -> N8 (not full)",
+      "process_id": "PR-4",
+      "from": "PR-4-N7",
+      "to": "PR-4-N8",
+      "guard": "List.length newPlayers <= playerLimit (5)",
+      "code_ref": [
+        "src/Backend.elm:110-111"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-4-E10",
+      "kind": "edge",
+      "name": "N7 -> N9 (full)",
+      "process_id": "PR-4",
+      "from": "PR-4-N7",
+      "to": "PR-4-N9",
+      "guard": "List.length newPlayers > playerLimit (5)",
+      "code_ref": [
+        "src/Backend.elm:110",
+        "src/Backend.elm:116-118"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-4-E11",
+      "kind": "edge",
+      "name": "N8 -> N10",
+      "process_id": "PR-4",
+      "from": "PR-4-N8",
+      "to": "PR-4-N10",
+      "guard": null,
+      "code_ref": [
+        "src/Backend.elm:111-113"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-4-E12",
+      "kind": "edge",
+      "name": "N9 -> N12",
+      "process_id": "PR-4",
+      "from": "PR-4-N9",
+      "to": "PR-4-N12",
+      "guard": null,
+      "code_ref": [
+        "src/Backend.elm:117",
+        "src/Frontend.elm:112-115"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-4-E13",
+      "kind": "edge",
+      "name": "N10 -> N11",
+      "process_id": "PR-4",
+      "from": "PR-4-N10",
+      "to": "PR-4-N11",
+      "guard": null,
+      "code_ref": [
+        "src/Backend.elm:112",
+        "src/Frontend.elm:95-96"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-4-E14",
+      "kind": "edge",
+      "name": "N11 -> N15",
+      "process_id": "PR-4",
+      "from": "PR-4-N11",
+      "to": "PR-4-N15",
+      "guard": null,
+      "code_ref": [
+        "src/Views/PlayerLobbyView.elm:11-24"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-4-E15",
+      "kind": "edge",
+      "name": "N12 -> N16",
+      "process_id": "PR-4",
+      "from": "PR-4-N12",
+      "to": "PR-4-N16",
+      "guard": null,
+      "code_ref": [
+        "src/Frontend.elm:112-115",
+        "src/Views/PlayerRegistrationView.elm:29-37"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-5",
+      "kind": "process",
+      "name": "End-of-game final scoring",
+      "description": "Triggered inside the TileDrawStackShuffled re-entry (issued after every turn's meeple placement, see PR-2): when getPlayableTileFromDrawstack yields Nothing - the shuffled draw stack holds no tile that can be placed in any of 4 rotations - the backend runs finishGame instead of refilling. finishGame scores ALL still-open features (every sideId present in the meeple dict, via countFeature) and ALL cloisters (countCloister per cloister tile), awards them by majority (getFeatureOwners), empties the meeple dict and sets FinishedState; the finished game is broadcast like any UpdateGameState. The winner is NOT explicitly computed anywhere - final scores are simply displayed in the sidebar, so the winner is implicit (highest score). Afterward a client may click 'Terminate Game' to reset the backend to an empty lobby and return every client to the registration form. Initial state: BeGamePlayed mid-game, draw stack exhausted. Final states: BeGamePlayed/FinishedState (default) or BePlayerRegistration { players = [] } after TerminateGame. No fork/join nodes: Elm updates are sequential; broadcasts are single fan-out actions on the external lane.",
+      "code_ref": [
+        "src/Backend.elm:61-84",
+        "src/Helpers/GameLogic.elm:511-556",
+        "src/Backend.elm:180-183"
+      ],
+      "detail": {
+        "lanes": [
+          "client",
+          "server",
+          "external"
+        ],
+        "lane_legend": {
+          "client": "Player's browser: src/Views/GameView.elm (FinishedState render + 'Terminate Game' button) and src/Frontend.elm (update / updateFromBackend / view).",
+          "server": "Lamdera backend: src/Backend.elm update (Nothing branch of TileDrawStackShuffled) + src/Helpers/GameLogic.elm finishGame + src/Helpers/FrontendHelpers.elm getPlayableTileFromDrawstack.",
+          "external": "Lamdera platform + Elm runtime: the Random cmd / Cmd-channel re-entry that triggers this process (src/Backend.elm:177 -> 61) and the Lamdera broadcast fan-out (src/Backend.elm:6).",
+          "database": "N/A - no database or persistence; all state lives in-memory in the Lamdera backend model (BackendModel, src/Types.elm:11-17)."
+        },
+        "start": "PR-5-N1",
+        "ends": [
+          "PR-5-N14",
+          "PR-5-N15",
+          "PR-5-N16"
+        ],
+        "error_paths": [
+          "Alternate branch: the shuffled stack DOES contain a playable tile - normal refill, game continues instead of ending (src/Backend.elm:63-74)",
+          "Post-game: no winner is computed or announced; if no client terminates the game the FinishedState scoreboard simply remains (winner determination is display-only, src/Views/GameView.elm:694)"
+        ]
+      }
+    },
+    {
+      "id": "PR-5-N1",
+      "kind": "start",
+      "name": "Start: draw-stack re-entry with exhausted stack",
+      "process_id": "PR-5",
+      "label": "Start: BeGamePlayed; the BackendMsg TileDrawStackShuffled (issued after a turn's meeple placement) re-enters Backend.update with a shuffled draw stack",
+      "lane": "server",
+      "description": "Initial state: game mid-progress, currentPlayer just finished placing a meeple or skipping; the async shuffle cmd has completed.",
+      "code_ref": [
+        "src/Backend.elm:61",
+        "src/Backend.elm:177",
+        "src/Types.elm:64"
+      ],
+      "detail": {
+        "kind": "start"
+      }
+    },
+    {
+      "id": "PR-5-N2",
+      "kind": "decision",
+      "name": "No playable tile in the draw stack?",
+      "process_id": "PR-5",
+      "label": "Decision: does the shuffled draw stack yield a playable tile? (getPlayableTileFromDrawstack game.tileGrid shuffledTileDrawStack -> (Just nextTileId, drawStack) | (Nothing, _))",
+      "lane": "server",
+      "description": "The (Nothing, _) arm is the game-over trigger: no remaining tile fits the board in any rotation.",
+      "code_ref": [
+        "src/Backend.elm:62-63",
+        "src/Helpers/FrontendHelpers.elm:132-143"
+      ],
+      "detail": {
+        "kind": "decision"
+      }
+    },
+    {
+      "id": "PR-5-N3",
+      "kind": "action",
+      "name": "Playable tile: normal refill (game continues)",
+      "process_id": "PR-5",
+      "label": "Alternate branch: a playable tile exists - normal refill (tileToPlace <- getTile nextTileId; tileDrawStack <- rest; broadcast UpdateGameState) and the game continues (PR-2 happy path)",
+      "lane": "server",
+      "description": "The non-ending outcome of this decision.",
+      "code_ref": [
+        "src/Backend.elm:63-74"
+      ],
+      "detail": {
+        "kind": "action"
+      }
+    },
+    {
+      "id": "PR-5-N4",
+      "kind": "action",
+      "name": "finishGame: score all open features",
+      "process_id": "PR-5",
+      "label": "finishGame step 1: score every still-open feature - for each sideId present in the meeple dict, (sideId, countFeature tileGrid sideId)",
+      "lane": "server",
+      "description": "Unlike in-turn scoring, ALL open features are scored here, not only finished ones (the board is done, so every feature counts).",
+      "code_ref": [
+        "src/Helpers/GameLogic.elm:514-518",
+        "src/Helpers/GameLogic.elm:170-188"
+      ],
+      "detail": {
+        "kind": "action"
+      }
+    },
+    {
+      "id": "PR-5-N5",
+      "kind": "action",
+      "name": "finishGame: score all cloisters",
+      "process_id": "PR-5",
+      "label": "finishGame step 2: score every cloister - for each placed tile with a cloister sideId, (sideId, countCloister) = number of the 8 surrounding tiles + 1",
+      "lane": "server",
+      "description": "Cloisters score 1 per adjacent tile (max 9).",
+      "code_ref": [
+        "src/Helpers/GameLogic.elm:520-527",
+        "src/Helpers/GameLogic.elm:211-224"
+      ],
+      "detail": {
+        "kind": "action"
+      }
+    },
+    {
+      "id": "PR-5-N6",
+      "kind": "action",
+      "name": "Award feature + cloister scores by majority",
+      "process_id": "PR-5",
+      "label": "finishGame step 3: award feature + cloister scores to the majority owners (getFeatureOwners per sideId) and accumulate into playerScores",
+      "lane": "server",
+      "description": "Ties are shared: every player with the maximum meeple count on the feature receives the full score.",
+      "code_ref": [
+        "src/Helpers/GameLogic.elm:529-550",
+        "src/Helpers/GameLogic.elm:256-290"
+      ],
+      "detail": {
+        "kind": "action"
+      }
+    },
+    {
+      "id": "PR-5-N7",
+      "kind": "action",
+      "name": "Empty meeple dict, FinishedState",
+      "process_id": "PR-5",
+      "label": "finishGame step 4: meeples <- Dict.empty; gameState <- FinishedState",
+      "lane": "server",
+      "description": "No winner is computed or stored - the finished game carries only playerScores; the winner is implicit (highest score) and only shown via the sidebar.",
+      "code_ref": [
+        "src/Helpers/GameLogic.elm:552-555",
+        "src/Types/GameState.elm:7"
+      ],
+      "unverified": "Winner determination is inferred: there is no winner-calculation or announcement in the code, so 'the winner' is the player with the highest displayed final score (src/Views/GameView.elm:694).",
+      "detail": {
+        "kind": "action"
+      }
+    },
+    {
+      "id": "PR-5-N8",
+      "kind": "action",
+      "name": "Lamdera broadcast UpdateGameState (finished game)",
+      "process_id": "PR-5",
+      "label": "Lamdera broadcast (UpdateGameState { game = finishedGame }) to all connected clients",
+      "lane": "external",
+      "description": "Same channel as in-turn updates - clients cannot distinguish 'finished' except via game.gameState.",
+      "code_ref": [
+        "src/Backend.elm:82-84",
+        "src/Backend.elm:6"
+      ],
+      "detail": {
+        "kind": "action"
+      }
+    },
+    {
+      "id": "PR-5-N9",
+      "kind": "action",
+      "name": "Clients apply the finished game",
+      "process_id": "PR-5",
+      "label": "All clients: updateFromBackend replaces FeGamePlayed.game with the finished game",
+      "lane": "client",
+      "description": "The (UpdateGameState, FeGamePlayed) convergence case.",
+      "code_ref": [
+        "src/Frontend.elm:143-150"
+      ],
+      "detail": {
+        "kind": "action"
+      }
+    },
+    {
+      "id": "PR-5-N10",
+      "kind": "action",
+      "name": "Render FinishedState: final board + final scores",
+      "process_id": "PR-5",
+      "label": "Render FinishedState: final board (no placeable overlay, no meeple overlay, tile preview = questionmark.png) + sidebar with final scores and remaining meeple counts per player; no further moves are possible",
+      "lane": "client",
+      "description": "The FinishedState branch renders the grid and sidebar only.",
+      "code_ref": [
+        "src/Views/GameView.elm:159-194",
+        "src/Views/GameView.elm:663-710"
+      ],
+      "detail": {
+        "kind": "action"
+      }
+    },
+    {
+      "id": "PR-5-N11",
+      "kind": "decision",
+      "name": "Does a client send TerminateGame?",
+      "process_id": "PR-5",
+      "label": "Decision (server): does (TerminateGame, model) match (TerminateGame, BeGamePlayed _)? (client path: 'Terminate Game' button -> FeTerminateGame -> sendToBackend TerminateGame)",
+      "lane": "server",
+      "description": "Optional post-game cleanup; if no client ever clicks the button the game simply stays in FinishedState.",
+      "code_ref": [
+        "src/Backend.elm:180",
+        "src/Views/GameView.elm:743-745",
+        "src/Frontend.elm:82-83",
+        "src/Types.elm:58"
+      ],
+      "detail": {
+        "kind": "decision"
+      }
+    },
+    {
+      "id": "PR-5-N12",
+      "kind": "action",
+      "name": "Reset backend to empty lobby, broadcast GameTerminated",
+      "process_id": "PR-5",
+      "label": "Backend model <- BePlayerRegistration { players = [] }; Lamdera broadcast GameTerminated to all connected clients",
+      "lane": "server",
+      "description": "The finished game (and all scores) are discarded server-side.",
+      "code_ref": [
+        "src/Backend.elm:180-183"
+      ],
+      "detail": {
+        "kind": "action"
+      }
+    },
+    {
+      "id": "PR-5-N13",
+      "kind": "action",
+      "name": "Clients return to registration form",
+      "process_id": "PR-5",
+      "label": "All clients: updateFromBackend (GameTerminated, FeGamePlayed _) -> model <- init (FePlayerRegistration { nameInput = '', error = Nothing })",
+      "lane": "client",
+      "description": "Back to the registration form for a potential next game.",
+      "code_ref": [
+        "src/Frontend.elm:152-153",
+        "src/Frontend.elm:34-41"
+      ],
+      "detail": {
+        "kind": "action"
+      }
+    },
+    {
+      "id": "PR-5-N14",
+      "kind": "end",
+      "name": "End (game continues): normal refill",
+      "process_id": "PR-5",
+      "label": "End (game continues): a playable tile was found - the turn loop continues with the newly drawn tile (PR-1/PR-2)",
+      "lane": "server",
+      "description": "Final state: BeGamePlayed with PlaceTileState.",
+      "code_ref": [
+        "src/Backend.elm:63-74"
+      ],
+      "detail": {
+        "kind": "end"
+      }
+    },
+    {
+      "id": "PR-5-N15",
+      "kind": "end",
+      "name": "End: game stays FinishedState",
+      "process_id": "PR-5",
+      "label": "End: game remains in FinishedState - final scores stay displayed; no winner announcement is made (winner = implicit highest score)",
+      "lane": "client",
+      "description": "Final state: BeGamePlayed / FeGamePlayed with FinishedState, until someone terminates.",
+      "code_ref": [
+        "src/Views/GameView.elm:159-194",
+        "src/Views/GameView.elm:694"
+      ],
+      "unverified": "The claim that no winner announcement exists is based on absence of such logic in the code (checked GameView sidebar and Game type).",
+      "detail": {
+        "kind": "end"
+      }
+    },
+    {
+      "id": "PR-5-N16",
+      "kind": "end",
+      "name": "End: back to registration",
+      "process_id": "PR-5",
+      "label": "End: all clients return to the player registration form; backend is an empty lobby (BePlayerRegistration { players = [] })",
+      "lane": "client",
+      "description": "Final state: fresh registration form; a new game can start via PR-4 -> PR-3.",
+      "code_ref": [
+        "src/Frontend.elm:152-153",
+        "src/Backend.elm:181"
+      ],
+      "detail": {
+        "kind": "end"
+      }
+    },
+    {
+      "id": "PR-5-E1",
+      "kind": "edge",
+      "name": "N1 -> N2",
+      "process_id": "PR-5",
+      "from": "PR-5-N1",
+      "to": "PR-5-N2",
+      "guard": null,
+      "code_ref": [
+        "src/Backend.elm:61-62"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-5-E2",
+      "kind": "edge",
+      "name": "N2 -> N3 (playable tile)",
+      "process_id": "PR-5",
+      "from": "PR-5-N2",
+      "to": "PR-5-N3",
+      "guard": "( Just nextTileId, drawStack )",
+      "code_ref": [
+        "src/Backend.elm:63-64"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-5-E3",
+      "kind": "edge",
+      "name": "N2 -> N4 (no playable tile)",
+      "process_id": "PR-5",
+      "from": "PR-5-N2",
+      "to": "PR-5-N4",
+      "guard": "( Nothing, _ )",
+      "code_ref": [
+        "src/Backend.elm:76-80"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-5-E4",
+      "kind": "edge",
+      "name": "N3 -> N14",
+      "process_id": "PR-5",
+      "from": "PR-5-N3",
+      "to": "PR-5-N14",
+      "guard": null,
+      "code_ref": [
+        "src/Backend.elm:72-74"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-5-E5",
+      "kind": "edge",
+      "name": "N4 -> N5",
+      "process_id": "PR-5",
+      "from": "PR-5-N4",
+      "to": "PR-5-N5",
+      "guard": null,
+      "code_ref": [
+        "src/Helpers/GameLogic.elm:520-527"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-5-E6",
+      "kind": "edge",
+      "name": "N5 -> N6",
+      "process_id": "PR-5",
+      "from": "PR-5-N5",
+      "to": "PR-5-N6",
+      "guard": null,
+      "code_ref": [
+        "src/Helpers/GameLogic.elm:529-533"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-5-E7",
+      "kind": "edge",
+      "name": "N6 -> N7",
+      "process_id": "PR-5",
+      "from": "PR-5-N6",
+      "to": "PR-5-N7",
+      "guard": null,
+      "code_ref": [
+        "src/Helpers/GameLogic.elm:551-555"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-5-E8",
+      "kind": "edge",
+      "name": "N7 -> N8",
+      "process_id": "PR-5",
+      "from": "PR-5-N7",
+      "to": "PR-5-N8",
+      "guard": null,
+      "code_ref": [
+        "src/Backend.elm:81-84"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-5-E9",
+      "kind": "edge",
+      "name": "N8 -> N9",
+      "process_id": "PR-5",
+      "from": "PR-5-N8",
+      "to": "PR-5-N9",
+      "guard": null,
+      "code_ref": [
+        "src/Backend.elm:83",
+        "src/Frontend.elm:143-144"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-5-E10",
+      "kind": "edge",
+      "name": "N9 -> N10",
+      "process_id": "PR-5",
+      "from": "PR-5-N9",
+      "to": "PR-5-N10",
+      "guard": null,
+      "code_ref": [
+        "src/Frontend.elm:168-169",
+        "src/Views/GameView.elm:159"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-5-E11",
+      "kind": "edge",
+      "name": "N10 -> N11",
+      "process_id": "PR-5",
+      "from": "PR-5-N10",
+      "to": "PR-5-N11",
+      "guard": null,
+      "code_ref": [
+        "src/Views/GameView.elm:743-745"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-5-E12",
+      "kind": "edge",
+      "name": "N11 -> N15 (no termination)",
+      "process_id": "PR-5",
+      "from": "PR-5-N11",
+      "to": "PR-5-N15",
+      "guard": "no TerminateGame msg arrives - players keep viewing the FinishedState scoreboard",
+      "code_ref": [
+        "src/Views/GameView.elm:159-194"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-5-E13",
+      "kind": "edge",
+      "name": "N11 -> N12 (terminate)",
+      "process_id": "PR-5",
+      "from": "PR-5-N11",
+      "to": "PR-5-N12",
+      "guard": "( TerminateGame, BeGamePlayed _ ) matches",
+      "code_ref": [
+        "src/Backend.elm:180-183"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-5-E14",
+      "kind": "edge",
+      "name": "N12 -> N13",
+      "process_id": "PR-5",
+      "from": "PR-5-N12",
+      "to": "PR-5-N13",
+      "guard": null,
+      "code_ref": [
+        "src/Backend.elm:182",
+        "src/Frontend.elm:152-153"
+      ],
+      "detail": {}
+    },
+    {
+      "id": "PR-5-E15",
+      "kind": "edge",
+      "name": "N13 -> N16",
+      "process_id": "PR-5",
+      "from": "PR-5-N13",
+      "to": "PR-5-N16",
+      "guard": null,
+      "code_ref": [
+        "src/Frontend.elm:152-153"
+      ],
+      "detail": {}
+    }
+  ],
+  "gaps": [
+    "The draw stack has 71 tile ids per initializeDrawStack (src/Types/Game.elm:120-147), not the 74 stated in the planner brief - the evidence-based number (71) is used throughout.",
+    "No explicit winner determination exists: finishGame only fills playerScores (src/Helpers/GameLogic.elm:511-556); the winner is implicit from the displayed scores (src/Views/GameView.elm:694).",
+    "Placement validity and turn ownership are enforced ONLY client-side (src/Helpers/FrontendHelpers.elm:48-110, src/Views/GameView.elm:58-75, 121-142); the server applies placeTile/placeMeeple without re-checking (docs at src/Helpers/GameLogic.elm:311-322, 373-382) - a malicious client could place invalid moves or play out of turn.",
+    "Whether Lamdera `broadcast` also reaches the acting client is inferred from Lamdera broadcast semantics and the single-updateFromBackend client design; it is not verifiable from the repo alone.",
+    "Duplicate-name rejection has no explicit user-visible error message - the client only receives the unchanged player list (src/Backend.elm:99-102); modelled as a distinct end state with this caveat.",
+    "Low-priority flows not modelled as processes (per planner scope): tile rotation (src/Views/GameView.elm:740-742 + src/Helpers/GameLogic.elm:21-40 + src/Backend.elm:150-158), lobby kick/kill (src/Backend.elm:125-138), rejoining an in-progress game (src/Backend.elm:120-123 + src/Frontend.elm:125-132); all remain cited where they touch modelled flows."
+  ]
+}

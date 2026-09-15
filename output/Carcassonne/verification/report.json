@@ -1,0 +1,177 @@
+{
+ "out_dir": "output/Carcassonne",
+ "repo": "output/Carcassonne/.repo",
+ "generated_at": "2026-09-14T22:26:19+00:00",
+ "docs": {
+  "Specification.md": {
+   "exists": true,
+   "citations_total": 231,
+   "citations_ok": 231,
+   "citations_failed": [],
+   "sections_missing": [],
+   "mermaid": {
+    "blocks": 1,
+    "types": [
+     "flowchart"
+    ],
+    "required_present": true,
+    "fences_balanced": true
+   },
+   "node_maps": {
+    "missing_maps": [],
+    "missing_ids": {
+     "line 32": [
+      "ToBackend",
+      "ToFrontend"
+     ]
+    }
+   },
+   "density_warnings": [
+    "\u00a7 11. Cross-References to Sibling Models (no citations)"
+   ],
+   "major_defects": [],
+   "minor_warnings": [
+    "node map at line 32 missing ids: ToBackend, ToFrontend"
+   ],
+   "status": "PASS"
+  },
+  "ClassModel.md": {
+   "exists": true,
+   "citations_total": 433,
+   "citations_ok": 433,
+   "citations_failed": [],
+   "sections_missing": [],
+   "mermaid": {
+    "blocks": 2,
+    "types": [
+     "classDiagram",
+     "classDiagram"
+    ],
+    "required_present": true,
+    "fences_balanced": true
+   },
+   "node_maps": {
+    "missing_maps": [],
+    "missing_ids": {
+     "line 757": [
+      "o"
+     ]
+    }
+   },
+   "density_warnings": [
+    "\u00a7 10. Sources & Cross-References (no citations)"
+   ],
+   "major_defects": [],
+   "minor_warnings": [
+    "node map at line 757 missing ids: o"
+   ],
+   "status": "PASS"
+  },
+  "DatabaseModel.md": {
+   "exists": true,
+   "citations_total": 372,
+   "citations_ok": 372,
+   "citations_failed": [],
+   "sections_missing": [],
+   "mermaid": {
+    "blocks": 1,
+    "types": [
+     "erDiagram"
+    ],
+    "required_present": true,
+    "fences_balanced": true
+   },
+   "node_maps": {
+    "missing_maps": [],
+    "missing_ids": {}
+   },
+   "density_warnings": [],
+   "major_defects": [],
+   "minor_warnings": [],
+   "status": "PASS"
+  },
+  "DomainModel.md": {
+   "exists": true,
+   "citations_total": 307,
+   "citations_ok": 307,
+   "citations_failed": [],
+   "sections_missing": [],
+   "mermaid": {
+    "blocks": 1,
+    "types": [
+     "classDiagram"
+    ],
+    "required_present": true,
+    "fences_balanced": true
+   },
+   "node_maps": {
+    "missing_maps": [],
+    "missing_ids": {
+     "line 152": [
+      "o"
+     ]
+    }
+   },
+   "density_warnings": [],
+   "major_defects": [],
+   "minor_warnings": [
+    "node map at line 152 missing ids: o"
+   ],
+   "status": "PASS"
+  },
+  "UseCaseModel.md": {
+   "exists": true,
+   "citations_total": 346,
+   "citations_ok": 346,
+   "citations_failed": [],
+   "sections_missing": [],
+   "mermaid": {
+    "blocks": 1,
+    "types": [
+     "flowchart"
+    ],
+    "required_present": true,
+    "fences_balanced": true
+   },
+   "node_maps": {
+    "missing_maps": [],
+    "missing_ids": {}
+   },
+   "density_warnings": [],
+   "major_defects": [],
+   "minor_warnings": [],
+   "status": "PASS"
+  },
+  "ActivityDiagram.md": {
+   "exists": true,
+   "citations_total": 332,
+   "citations_ok": 332,
+   "citations_failed": [],
+   "sections_missing": [],
+   "mermaid": {
+    "blocks": 5,
+    "types": [
+     "flowchart",
+     "flowchart",
+     "flowchart",
+     "flowchart",
+     "flowchart"
+    ],
+    "required_present": true,
+    "fences_balanced": true
+   },
+   "node_maps": {
+    "missing_maps": [],
+    "missing_ids": {}
+   },
+   "density_warnings": [],
+   "major_defects": [],
+   "minor_warnings": [],
+   "status": "PASS"
+  }
+ },
+ "overall": {
+  "pass": true,
+  "status": "PASS"
+ }
+}

@@ -1,0 +1,1007 @@
+{
+  "model": "classes",
+  "repo_name": "Carcassonne",
+  "repo_sha": "ca2797745a863243fa6ce96af63435b0d67bf2ab",
+  "analyst_status": "ok",
+  "generated_by": "02-class-analyst",
+  "scope_note": "src/ (all 46 .elm files) + tests/; review/ excluded (separate elm-review tooling project); src/Evergreen/ treated as compiler-generated Lamdera state snapshots mirroring live types, not hand-designed types.",
+  "elements": [
+    {
+      "id": "CL-1",
+      "kind": "class",
+      "name": "Game",
+      "layer": "model",
+      "description": "Root state record of the whole board game: players, scores, remaining meeples, turn order, the pending tile, the tile grid, the meeple placement dict and the draw stack. Owned by Types.Game; behavior (initialization, turn advance) lives in the same module.",
+      "code_ref": ["src/Types/Game.elm:28-40"],
+      "unverified": null,
+      "detail": {
+        "layer": "model",
+        "fully_detailed": true,
+        "attributes": [
+          { "name": "playerScores", "type": "PlayerScores (Dict PlayerName Score)", "visibility": "+", "code_ref": "src/Types/Game.elm:29" },
+          { "name": "playerMeeples", "type": "Dict PlayerName Int", "visibility": "+", "code_ref": "src/Types/Game.elm:30" },
+          { "name": "players", "type": "Array PlayerName", "visibility": "+", "code_ref": "src/Types/Game.elm:31" },
+          { "name": "currentPlayer", "type": "PlayerIndex", "visibility": "+", "code_ref": "src/Types/Game.elm:32" },
+          { "name": "tileToPlace", "type": "Tile", "visibility": "+", "code_ref": "src/Types/Game.elm:33" },
+          { "name": "gameState", "type": "GameState", "visibility": "+", "code_ref": "src/Types/Game.elm:34" },
+          { "name": "lastPlacedTile", "type": "Coordinate", "visibility": "+", "code_ref": "src/Types/Game.elm:35" },
+          { "name": "nextSideId", "type": "SideId", "visibility": "+", "code_ref": "src/Types/Game.elm:36" },
+          { "name": "tileDrawStack", "type": "List TileId", "visibility": "+", "code_ref": "src/Types/Game.elm:37" },
+          { "name": "tileGrid", "type": "TileGrid (Dict Coordinate Tile)", "visibility": "+", "code_ref": "src/Types/Game.elm:38" },
+          { "name": "meeples", "type": "Meeples (Dict SideId (List Meeple))", "visibility": "+", "code_ref": "src/Types/Game.elm:39" }
+        ],
+        "methods": [
+          { "name": "initializeGame", "params": "List PlayerName", "returns": "Game", "visibility": "+", "code_ref": "src/Types/Game.elm:53-73" },
+          { "name": "getNextPlayer", "params": "Game", "returns": "PlayerIndex", "visibility": "+", "code_ref": "src/Types/Game.elm:78-84" },
+          { "name": "getLastPlacedTile", "params": "Game", "returns": "Tile", "visibility": "+", "code_ref": "src/Types/Game.elm:89-94" },
+          { "name": "initializeTileGrid", "params": "", "returns": "TileGrid", "visibility": "+", "code_ref": "src/Types/Game.elm:102-104" },
+          { "name": "getNextSideId", "params": "TileGrid", "returns": "SideId", "visibility": "+", "code_ref": "src/Types/Game.elm:109-115" },
+          { "name": "initializeDrawStack", "params": "", "returns": "List TileId", "visibility": "+", "code_ref": "src/Types/Game.elm:120-147" }
+        ],
+        "annotations": ["constant playerLimit = 5 (src/Types/Game.elm:43-45)", "each player starts with 7 meeples (src/Types/Game.elm:61)"]
+      }
+    },
+    {
+      "id": "CL-2",
+      "kind": "class",
+      "name": "Tile",
+      "layer": "model",
+      "description": "A physical Carcassonne tile: identity, current rotation (degrees, +90 per counter-clockwise turn) and the four cardinal sides plus an optional cloister (Mönch) side.",
+      "code_ref": ["src/Types/Tile.elm:21-29"],
+      "unverified": null,
+      "detail": {
+        "layer": "model",
+        "fully_detailed": true,
+        "attributes": [
+          { "name": "tileId", "type": "TileId (Int)", "visibility": "+", "code_ref": "src/Types/Tile.elm:22" },
+          { "name": "rotation", "type": "Int", "visibility": "+", "code_ref": "src/Types/Tile.elm:23" },
+          { "name": "north", "type": "Side", "visibility": "+", "code_ref": "src/Types/Tile.elm:24" },
+          { "name": "east", "type": "Side", "visibility": "+", "code_ref": "src/Types/Tile.elm:25" },
+          { "name": "south", "type": "Side", "visibility": "+", "code_ref": "src/Types/Tile.elm:26" },
+          { "name": "west", "type": "Side", "visibility": "+", "code_ref": "src/Types/Tile.elm:27" },
+          { "name": "cloister", "type": "Maybe SideId", "visibility": "+", "code_ref": "src/Types/Tile.elm:28" }
+        ],
+        "methods": [
+          { "name": "getTileMaximumSideId", "params": "Tile", "returns": "SideId", "visibility": "+", "code_ref": "src/Types/Tile.elm:34-37" },
+          { "name": "getTileSideIds", "params": "Tile", "returns": "Set SideId", "visibility": "+", "code_ref": "src/Types/Tile.elm:42-45" },
+          { "name": "getAllSides", "params": "Tile", "returns": "List SideId", "visibility": "+", "code_ref": "src/Types/Tile.elm:50-57" },
+          { "name": "updateSideIds", "params": "SideId, Tile", "returns": "Tile", "visibility": "+", "code_ref": "src/Types/Tile.elm:62-81" },
+          { "name": "getTileImageSource", "params": "TileId", "returns": "String", "visibility": "+", "code_ref": "src/Types/Tile.elm:84-86" }
+        ],
+        "annotations": ["sideId -1 marks a field-only side (no feature boundary) — see TileMapper tiles, e.g. src/Helpers/TileMapper.elm:17"]
+      }
+    },
+    {
+      "id": "CL-3",
+      "kind": "class",
+      "name": "Side",
+      "layer": "model",
+      "description": "One edge of a tile: a globally-unique feature identifier (sideId, -1 for open field) and the kind of feature (City/Road/Field).",
+      "code_ref": ["src/Types/Tile.elm:15-18"],
+      "unverified": null,
+      "detail": {
+        "layer": "model",
+        "fully_detailed": true,
+        "attributes": [
+          { "name": "sideId", "type": "SideId (Int)", "visibility": "+", "code_ref": "src/Types/Tile.elm:16" },
+          { "name": "sideFeature", "type": "Feature", "visibility": "+", "code_ref": "src/Types/Tile.elm:17" }
+        ],
+        "methods": [],
+        "annotations": []
+      }
+    },
+    {
+      "id": "CL-4",
+      "kind": "class",
+      "name": "TileId",
+      "layer": "model",
+      "description": "Newtype over Int identifying a tile variant in the 24-tile base set (0..23).",
+      "code_ref": ["src/Types/Tile.elm:7-8"],
+      "unverified": null,
+      "detail": { "layer": "model", "fully_detailed": true, "attributes": [{ "name": "(newtype target)", "type": "Int", "visibility": "+", "code_ref": "src/Types/Tile.elm:7-8" }], "methods": [], "annotations": [] }
+    },
+    {
+      "id": "CL-5",
+      "kind": "class",
+      "name": "SideId",
+      "layer": "model",
+      "description": "Newtype over Int used as the global identifier of a connected feature (road/city/field/cloister chain) across the tile grid; -1 denotes an unconnected field side.",
+      "code_ref": ["src/Types/Tile.elm:11-12"],
+      "unverified": null,
+      "detail": { "layer": "model", "fully_detailed": true, "attributes": [{ "name": "(newtype target)", "type": "Int", "visibility": "+", "code_ref": "src/Types/Tile.elm:11-12" }], "methods": [], "annotations": [] }
+    },
+    {
+      "id": "CL-6",
+      "kind": "class",
+      "name": "TileGrid",
+      "layer": "model",
+      "description": "The board: a dictionary from grid coordinates to placed tiles (1..* tiles).",
+      "code_ref": ["src/Types/Game.elm:20-21"],
+      "unverified": null,
+      "detail": { "layer": "model", "fully_detailed": true, "attributes": [{ "name": "(alias target)", "type": "Dict Coordinate Tile", "visibility": "+", "code_ref": "src/Types/Game.elm:20-21" }], "methods": [], "annotations": [] }
+    },
+    {
+      "id": "CL-7",
+      "kind": "class",
+      "name": "PlayerScores",
+      "layer": "model",
+      "description": "Running score per player.",
+      "code_ref": ["src/Types/Game.elm:16-17"],
+      "unverified": null,
+      "detail": { "layer": "model", "fully_detailed": true, "attributes": [{ "name": "(alias target)", "type": "Dict PlayerName Score", "visibility": "+", "code_ref": "src/Types/Game.elm:16-17" }], "methods": [], "annotations": [] }
+    },
+    {
+      "id": "CL-8",
+      "kind": "class",
+      "name": "Meeples",
+      "layer": "model",
+      "description": "All meeples currently on the board, keyed by feature SideId to the list of meeples placed on that feature (0..* meeples per feature).",
+      "code_ref": ["src/Types/Game.elm:24-25"],
+      "unverified": null,
+      "detail": { "layer": "model", "fully_detailed": true, "attributes": [{ "name": "(alias target)", "type": "Dict SideId (List Meeple)", "visibility": "+", "code_ref": "src/Types/Game.elm:24-25" }], "methods": [], "annotations": [] }
+    },
+    {
+      "id": "CL-9",
+      "kind": "class",
+      "name": "Meeple",
+      "layer": "model",
+      "description": "A placed meeple: its owner's player index, the tile coordinate it sits on and the position on that tile (center for cloisters, cardinal for sides, Skip = no placement).",
+      "code_ref": ["src/Types/Meeple.elm:17-23"],
+      "unverified": null,
+      "detail": {
+        "layer": "model",
+        "fully_detailed": true,
+        "attributes": [
+          { "name": "owner", "type": "PlayerIndex", "visibility": "+", "code_ref": "src/Types/Meeple.elm:18" },
+          { "name": "coordinates", "type": "Coordinate", "visibility": "+", "code_ref": "src/Types/Meeple.elm:19" },
+          { "name": "position", "type": "MeeplePosition", "visibility": "+", "code_ref": "src/Types/Meeple.elm:20" }
+        ],
+        "methods": [
+          { "name": "getMeepleImageSource", "params": "Int", "returns": "String", "visibility": "+", "code_ref": "src/Types/Meeple.elm:37-42" }
+        ],
+        "annotations": ["meepleColorDictionary maps player index 0..4 to red/blue/green/yellow/black (src/Types/Meeple.elm:26-34)", "record comment reserves room for expansion meeple types (src/Types/Meeple.elm:22)"]
+      }
+    },
+    {
+      "id": "CL-10",
+      "kind": "class",
+      "name": "MeeplePosition",
+      "layer": "model",
+      "description": "Custom type with the six possible placements of a meeple on the last placed tile.",
+      "code_ref": ["src/Types/Meeple.elm:8-14"],
+      "unverified": null,
+      "detail": {
+        "layer": "model",
+        "fully_detailed": true,
+        "attributes": [
+          { "name": "Center", "type": "(no payload)", "visibility": "+", "code_ref": "src/Types/Meeple.elm:9" },
+          { "name": "North", "type": "(no payload)", "visibility": "+", "code_ref": "src/Types/Meeple.elm:10" },
+          { "name": "East", "type": "(no payload)", "visibility": "+", "code_ref": "src/Types/Meeple.elm:11" },
+          { "name": "South", "type": "(no payload)", "visibility": "+", "code_ref": "src/Types/Meeple.elm:12" },
+          { "name": "West", "type": "(no payload)", "visibility": "+", "code_ref": "src/Types/Meeple.elm:13" },
+          { "name": "Skip", "type": "(no payload)", "visibility": "+", "code_ref": "src/Types/Meeple.elm:14" }
+        ],
+        "methods": [],
+        "annotations": ["Center is used for cloister tiles (src/Helpers/GameLogic.elm:412-413)"]
+      }
+    },
+    {
+      "id": "CL-11",
+      "kind": "class",
+      "name": "Feature",
+      "layer": "model",
+      "description": "Custom type with the four feature kinds a tile side can carry.",
+      "code_ref": ["src/Types/Feature.elm:4-8"],
+      "unverified": null,
+      "detail": {
+        "layer": "model",
+        "fully_detailed": true,
+        "attributes": [
+          { "name": "City", "type": "(no payload)", "visibility": "+", "code_ref": "src/Types/Feature.elm:5" },
+          { "name": "Road", "type": "(no payload)", "visibility": "+", "code_ref": "src/Types/Feature.elm:6" },
+          { "name": "Field", "type": "(no payload)", "visibility": "+", "code_ref": "src/Types/Feature.elm:7" },
+          { "name": "NoFeature", "type": "(no payload)", "visibility": "+", "code_ref": "src/Types/Feature.elm:8" }
+        ],
+        "methods": [],
+        "annotations": []
+      }
+    },
+    {
+      "id": "CL-12",
+      "kind": "class",
+      "name": "GameState",
+      "layer": "model",
+      "description": "Custom type driving the per-turn state machine: place tile -> place meeple -> finished.",
+      "code_ref": ["src/Types/GameState.elm:4-7"],
+      "unverified": null,
+      "detail": {
+        "layer": "model",
+        "fully_detailed": true,
+        "attributes": [
+          { "name": "PlaceTileState", "type": "(no payload)", "visibility": "+", "code_ref": "src/Types/GameState.elm:5" },
+          { "name": "PlaceMeepleState", "type": "(no payload)", "visibility": "+", "code_ref": "src/Types/GameState.elm:6" },
+          { "name": "FinishedState", "type": "(no payload)", "visibility": "+", "code_ref": "src/Types/GameState.elm:7" }
+        ],
+        "methods": [
+          { "name": "toString", "params": "GameState", "returns": "String", "visibility": "+", "code_ref": "src/Types/GameState.elm:10-20" }
+        ],
+        "annotations": []
+      }
+    },
+    {
+      "id": "CL-13",
+      "kind": "class",
+      "name": "Coordinate",
+      "layer": "model",
+      "description": "Newtype over an (Int, Int) grid coordinate; (0,0) is the starting tile.",
+      "code_ref": ["src/Types/Coordinate.elm:4-5"],
+      "unverified": null,
+      "detail": { "layer": "model", "fully_detailed": true, "attributes": [{ "name": "(newtype target)", "type": "( Int, Int )", "visibility": "+", "code_ref": "src/Types/Coordinate.elm:4-5" }], "methods": [], "annotations": [] }
+    },
+    {
+      "id": "CL-14",
+      "kind": "class",
+      "name": "PlayerIndex",
+      "layer": "model",
+      "description": "Newtype over Int: positional index of a player in Game.players (also the Meeple.owner).",
+      "code_ref": ["src/Types/PlayerIndex.elm:4-5"],
+      "unverified": null,
+      "detail": { "layer": "model", "fully_detailed": true, "attributes": [{ "name": "(newtype target)", "type": "Int", "visibility": "+", "code_ref": "src/Types/PlayerIndex.elm:4-5" }], "methods": [], "annotations": [] }
+    },
+    {
+      "id": "CL-15",
+      "kind": "class",
+      "name": "PlayerName",
+      "layer": "model",
+      "description": "Newtype over String: the player's display name, used as key in score/meeple dicts and in lobby state.",
+      "code_ref": ["src/Types/PlayerName.elm:4-5"],
+      "unverified": null,
+      "detail": { "layer": "model", "fully_detailed": true, "attributes": [{ "name": "(newtype target)", "type": "String", "visibility": "+", "code_ref": "src/Types/PlayerName.elm:4-5" }], "methods": [], "annotations": [] }
+    },
+    {
+      "id": "CL-16",
+      "kind": "class",
+      "name": "Score",
+      "layer": "model",
+      "description": "Newtype over Int: points accumulated by a player.",
+      "code_ref": ["src/Types/Score.elm:4-5"],
+      "unverified": null,
+      "detail": { "layer": "model", "fully_detailed": true, "attributes": [{ "name": "(newtype target)", "type": "Int", "visibility": "+", "code_ref": "src/Types/Score.elm:4-5" }], "methods": [], "annotations": [] }
+    },
+    {
+      "id": "CL-17",
+      "kind": "class",
+      "name": "FrontendModel",
+      "layer": "dto",
+      "description": "Lamdera frontend state machine: which screen the local client is on (registration form, lobby, game) and its per-screen data. Mirrored by the Lamdera app model in Frontend.elm.",
+      "code_ref": ["src/Types.elm:20-33"],
+      "unverified": null,
+      "detail": {
+        "layer": "dto",
+        "fully_detailed": true,
+        "attributes": [
+          { "name": "FePlayerRegistration { nameInput, error }", "type": "nameInput : String, error : Maybe String", "visibility": "+", "code_ref": "src/Types.elm:21-24" },
+          { "name": "FeLobby { playerName, players }", "type": "playerName : PlayerName, players : List PlayerName", "visibility": "+", "code_ref": "src/Types.elm:25-28" },
+          { "name": "FeGamePlayed { playerName, debugMode, game }", "type": "playerName : PlayerName, debugMode : Bool, game : Game", "visibility": "+", "code_ref": "src/Types.elm:29-33" }
+        ],
+        "methods": [],
+        "annotations": ["alias Model = FrontendModel (src/Frontend.elm:13-14)"]
+      }
+    },
+    {
+      "id": "CL-18",
+      "kind": "class",
+      "name": "BackendModel",
+      "layer": "dto",
+      "description": "Lamdera backend state machine: either the lobby is open (player registration list) or a game is in progress (full Game state).",
+      "code_ref": ["src/Types.elm:11-17"],
+      "unverified": null,
+      "detail": {
+        "layer": "dto",
+        "fully_detailed": true,
+        "attributes": [
+          { "name": "BePlayerRegistration { players }", "type": "players : List PlayerName", "visibility": "+", "code_ref": "src/Types.elm:12-14" },
+          { "name": "BeGamePlayed { game }", "type": "game : Game", "visibility": "+", "code_ref": "src/Types.elm:15-17" }
+        ],
+        "methods": [],
+        "annotations": ["alias Model = BackendModel (src/Backend.elm:14-15)"]
+      }
+    },
+    {
+      "id": "CL-19",
+      "kind": "class",
+      "name": "FrontendMsg",
+      "layer": "dto",
+      "description": "Client-side user intents of the Elm architecture loop; update maps them to local state changes or ToBackend requests, and the views produce them from Html events.",
+      "code_ref": ["src/Types.elm:36-47"],
+      "unverified": null,
+      "detail": {
+        "layer": "dto",
+        "fully_detailed": true,
+        "attributes": [
+          { "name": "NameInputChanged", "type": "payload String", "visibility": "+", "code_ref": "src/Types.elm:37" },
+          { "name": "Register", "type": "(no payload)", "visibility": "+", "code_ref": "src/Types.elm:38" },
+          { "name": "Kick", "type": "payload PlayerName", "visibility": "+", "code_ref": "src/Types.elm:39" },
+          { "name": "FeKillLobby", "type": "(no payload)", "visibility": "+", "code_ref": "src/Types.elm:40" },
+          { "name": "FeInitializeGame", "type": "(no payload)", "visibility": "+", "code_ref": "src/Types.elm:41" },
+          { "name": "FeRotateTileLeft", "type": "(no payload)", "visibility": "+", "code_ref": "src/Types.elm:42" },
+          { "name": "ChangeDebugMode", "type": "(no payload)", "visibility": "+", "code_ref": "src/Types.elm:43" },
+          { "name": "FePlaceTile", "type": "payload Coordinate", "visibility": "+", "code_ref": "src/Types.elm:44" },
+          { "name": "FePlaceMeeple", "type": "payload MeeplePosition", "visibility": "+", "code_ref": "src/Types.elm:45" },
+          { "name": "FeTerminateGame", "type": "(no payload)", "visibility": "+", "code_ref": "src/Types.elm:46" },
+          { "name": "FNoop", "type": "(no payload)", "visibility": "+", "code_ref": "src/Types.elm:47" }
+        ],
+        "methods": [],
+        "annotations": []
+      }
+    },
+    {
+      "id": "CL-20",
+      "kind": "class",
+      "name": "ToBackend",
+      "layer": "dto",
+      "description": "Requests a client sends to the backend over the Lamdera protocol (sendToBackend); the wire-facing half of a game move or lobby action.",
+      "code_ref": ["src/Types.elm:50-58"],
+      "unverified": null,
+      "detail": {
+        "layer": "dto",
+        "fully_detailed": true,
+        "attributes": [
+          { "name": "RegisterPlayer", "type": "payload PlayerName", "visibility": "+", "code_ref": "src/Types.elm:51" },
+          { "name": "KickPlayer", "type": "payload PlayerName", "visibility": "+", "code_ref": "src/Types.elm:52" },
+          { "name": "KillLobby", "type": "(no payload)", "visibility": "+", "code_ref": "src/Types.elm:53" },
+          { "name": "InitializeGame", "type": "(no payload)", "visibility": "+", "code_ref": "src/Types.elm:54" },
+          { "name": "RotateTileLeft", "type": "(no payload)", "visibility": "+", "code_ref": "src/Types.elm:55" },
+          { "name": "PlaceTile", "type": "payload Coordinate", "visibility": "+", "code_ref": "src/Types.elm:56" },
+          { "name": "PlaceMeeple", "type": "payload MeeplePosition", "visibility": "+", "code_ref": "src/Types.elm:57" },
+          { "name": "TerminateGame", "type": "(no payload)", "visibility": "+", "code_ref": "src/Types.elm:58" }
+        ],
+        "methods": [],
+        "annotations": []
+      }
+    },
+    {
+      "id": "CL-21",
+      "kind": "class",
+      "name": "BackendMsg",
+      "layer": "dto",
+      "description": "Backend-internal messages: client connection notifications and shuffled tile-draw-stack results (from Random.generate / Lamdera.onConnect).",
+      "code_ref": ["src/Types.elm:61-65"],
+      "unverified": null,
+      "detail": {
+        "layer": "dto",
+        "fully_detailed": true,
+        "attributes": [
+          { "name": "ClientConnected", "type": "payload SessionId ClientId", "visibility": "+", "code_ref": "src/Types.elm:62" },
+          { "name": "InitializeGameAndTileDrawStackShuffled", "type": "payload (List SideId)", "visibility": "+", "code_ref": "src/Types.elm:63" },
+          { "name": "TileDrawStackShuffled", "type": "payload (List SideId)", "visibility": "+", "code_ref": "src/Types.elm:64" }
+        ],
+        "methods": [],
+        "annotations": []
+      }
+    },
+    {
+      "id": "CL-22",
+      "kind": "class",
+      "name": "ToFrontend",
+      "layer": "dto",
+      "description": "Responses the backend broadcasts/sends to clients (sendToFrontend / broadcast): lobby updates and full game-state pushes.",
+      "code_ref": ["src/Types.elm:67-86"],
+      "unverified": null,
+      "detail": {
+        "layer": "dto",
+        "fully_detailed": true,
+        "attributes": [
+          { "name": "PlayerRegistrationUpdated", "type": "payload { players : List PlayerName }", "visibility": "+", "code_ref": "src/Types.elm:68-70" },
+          { "name": "PlayerKicked", "type": "payload { players, kickedPlayer }", "visibility": "+", "code_ref": "src/Types.elm:71-74" },
+          { "name": "LobbyIsFull", "type": "(no payload)", "visibility": "+", "code_ref": "src/Types.elm:75" },
+          { "name": "LobbyKilled", "type": "(no payload)", "visibility": "+", "code_ref": "src/Types.elm:76" },
+          { "name": "GameInitialized", "type": "payload { game : Game }", "visibility": "+", "code_ref": "src/Types.elm:77-79" },
+          { "name": "UpdateGameState", "type": "payload { game : Game }", "visibility": "+", "code_ref": "src/Types.elm:80-82" },
+          { "name": "JoinedGame", "type": "payload { game : Game }", "visibility": "+", "code_ref": "src/Types.elm:83-85" },
+          { "name": "GameTerminated", "type": "(no payload)", "visibility": "+", "code_ref": "src/Types.elm:86" }
+        ],
+        "methods": [],
+        "annotations": []
+      }
+    },
+    {
+      "id": "CL-23",
+      "kind": "class",
+      "name": "GameLogic",
+      "layer": "service",
+      "description": "Core game-rule service (module Helpers.GameLogic). Owns all pure domain behavior on Game: tile rotation, rotation validation, tile placement with feature (sideId) merging, meeple placement with scoring of finished features, and end-of-game scoring. No I/O; fully testable.",
+      "code_ref": ["src/Helpers/GameLogic.elm:1"],
+      "unverified": null,
+      "detail": {
+        "layer": "service",
+        "fully_detailed": true,
+        "attributes": [],
+        "methods": [
+          { "name": "rotateLeft", "params": "Tile", "returns": "Tile", "visibility": "+", "code_ref": "src/Helpers/GameLogic.elm:21-40" },
+          { "name": "isRotatedCorrectly", "params": "Tile", "returns": "Bool", "visibility": "+", "code_ref": "src/Helpers/GameLogic.elm:45-94" },
+          { "name": "replaceTileSideId", "params": "Maybe SideId, SideId, TileGrid", "returns": "TileGrid", "visibility": "+", "code_ref": "src/Helpers/GameLogic.elm:102-131" },
+          { "name": "replaceMeepleSideId", "params": "Maybe SideId, SideId, Meeples", "returns": "Meeples", "visibility": "+", "code_ref": "src/Helpers/GameLogic.elm:136-162" },
+          { "name": "countFeature", "params": "TileGrid, SideId", "returns": "Score", "visibility": "+", "code_ref": "src/Helpers/GameLogic.elm:170-188" },
+          { "name": "isFeatureFinished", "params": "TileGrid, SideId", "returns": "Bool", "visibility": "+", "code_ref": "src/Helpers/GameLogic.elm:193-203" },
+          { "name": "countCloister", "params": "TileGrid, Coordinate", "returns": "Score", "visibility": "+", "code_ref": "src/Helpers/GameLogic.elm:211-224" },
+          { "name": "getAdjacentTileCloisterScores", "params": "TileGrid, Coordinate", "returns": "List ( SideId, Score )", "visibility": "+", "code_ref": "src/Helpers/GameLogic.elm:230-251" },
+          { "name": "getFeatureOwners", "params": "Meeples, SideId", "returns": "List PlayerIndex", "visibility": "+", "code_ref": "src/Helpers/GameLogic.elm:256-290" },
+          { "name": "getSideIdFeature", "params": "SideId, TileGrid", "returns": "Feature", "visibility": "+", "code_ref": "src/Helpers/GameLogic.elm:300-308" },
+          { "name": "placeTile", "params": "Game, Coordinate", "returns": "Game", "visibility": "+", "code_ref": "src/Helpers/GameLogic.elm:323-370" },
+          { "name": "placeMeeple", "params": "Game, MeeplePosition", "returns": "Game", "visibility": "+", "code_ref": "src/Helpers/GameLogic.elm:383-508" },
+          { "name": "finishGame", "params": "Game", "returns": "Game", "visibility": "+", "code_ref": "src/Helpers/GameLogic.elm:511-556" }
+        ],
+        "annotations": [
+          "placeTile switches gameState to PlaceMeepleState (src/Helpers/GameLogic.elm:367); placeMeeple back to PlaceTileState (src/Helpers/GameLogic.elm:507)",
+          "cities larger than 2 tiles score double when finished mid-game (src/Helpers/GameLogic.elm:430-432)",
+          "players start with 7 meeples (set in initializeGame, src/Types/Game.elm:61); placing a non-Skip meeple decrements the count (src/Helpers/GameLogic.elm:493-500)"
+        ]
+      }
+    },
+    {
+      "id": "CL-24",
+      "kind": "class",
+      "name": "TileMapper",
+      "layer": "service",
+      "description": "Tile-catalog service (module Helpers.TileMapper): maps each TileId 0..23 to its canonical Tile (sides, features, cloister); unknown ids fall back to tile 0. The 24 tiles define the base-set composition.",
+      "code_ref": ["src/Helpers/TileMapper.elm:1"],
+      "unverified": null,
+      "detail": {
+        "layer": "service",
+        "fully_detailed": true,
+        "attributes": [],
+        "methods": [
+          { "name": "getTile", "params": "TileId", "returns": "Tile", "visibility": "+", "code_ref": "src/Helpers/TileMapper.elm:9-253" }
+        ],
+        "annotations": [
+          "only tiles 3 and 4 carry a cloister (src/Helpers/TileMapper.elm:49,59)",
+          "fallthrough _ -> getTile 0 (src/Helpers/TileMapper.elm:252-253)",
+          "module exposes only getTile (src/Helpers/TileMapper.elm:1)"
+        ]
+      }
+    },
+    {
+      "id": "CL-25",
+      "kind": "class",
+      "name": "FrontendHelpers",
+      "layer": "service",
+      "description": "Gameplay-feasibility service (module Helpers.FrontendHelpers): computes where the current tile can legally be placed, where a meeple may go, and draws the next playable tile from the draw stack. Shared by the Backend (draw stack) and the GameView (highlighting of legal moves).",
+      "code_ref": ["src/Helpers/FrontendHelpers.elm:1"],
+      "unverified": null,
+      "detail": {
+        "layer": "service",
+        "fully_detailed": true,
+        "attributes": [],
+        "methods": [
+          { "name": "toMeepleCoordinates", "params": "Meeples", "returns": "Dict Coordinate Meeple", "visibility": "+", "code_ref": "src/Helpers/FrontendHelpers.elm:16-22" },
+          { "name": "getMeeplePositionsToBePlacedOn", "params": "PlayerName, Dict PlayerName Int, Meeples, Tile", "returns": "List MeeplePosition", "visibility": "+", "code_ref": "src/Helpers/FrontendHelpers.elm:27-43" },
+          { "name": "tileCanBePlaced", "params": "TileGrid, Tile, Coordinate", "returns": "Bool", "visibility": "+", "code_ref": "src/Helpers/FrontendHelpers.elm:48-84" },
+          { "name": "getCoordinatesToBePlacedOn", "params": "TileGrid, Tile", "returns": "Set Coordinate", "visibility": "+", "code_ref": "src/Helpers/FrontendHelpers.elm:89-110" },
+          { "name": "tileCanBePlacedAnywhere", "params": "TileGrid, Tile", "returns": "Bool", "visibility": "+", "code_ref": "src/Helpers/FrontendHelpers.elm:120-127" },
+          { "name": "getPlayableTileFromDrawstack", "params": "TileGrid, List TileId", "returns": "( Maybe TileId, List TileId )", "visibility": "+", "code_ref": "src/Helpers/FrontendHelpers.elm:132-143" }
+        ],
+        "annotations": [
+          "tileCanBePlaced enforces matching sideFeatures on all four neighbors and empty target cell (src/Helpers/FrontendHelpers.elm:67-84)",
+          "getMeeplePositionsToBePlacedOn returns [ Skip ] when the player has no meeples left (src/Helpers/FrontendHelpers.elm:42-43)"
+        ]
+      }
+    },
+    {
+      "id": "CL-26",
+      "kind": "class",
+      "name": "Frontend",
+      "layer": "controller",
+      "description": "Lamdera frontend controller (module Frontend). Implements the Elm architecture loop (init/update/subscribe/view) plus Lamdera's updateFromBackend; routes user intents to views and backend requests.",
+      "code_ref": ["src/Frontend.elm:1"],
+      "unverified": null,
+      "detail": {
+        "layer": "controller",
+        "fully_detailed": true,
+        "attributes": [],
+        "methods": [
+          { "name": "app", "params": "", "returns": "Lamdera frontend record", "visibility": "+", "code_ref": "src/Frontend.elm:17-31" },
+          { "name": "init", "params": "", "returns": "( Model, Cmd FrontendMsg )", "visibility": "+", "code_ref": "src/Frontend.elm:34-41" },
+          { "name": "update", "params": "FrontendMsg, Model", "returns": "( Model, Cmd FrontendMsg )", "visibility": "+", "code_ref": "src/Frontend.elm:44-89" },
+          { "name": "updateFromBackend", "params": "ToFrontend, Model", "returns": "( Model, Cmd FrontendMsg )", "visibility": "+", "code_ref": "src/Frontend.elm:92-156" },
+          { "name": "view", "params": "Model", "returns": "Html FrontendMsg", "visibility": "+", "code_ref": "src/Frontend.elm:159-169" }
+        ],
+        "annotations": [
+          "Lamdera frontend endpoint: Lamdera.frontend { init, update, updateFromBackend, view, subscriptions, onUrlChange, onUrlRequest } (src/Frontend.elm:18-31)",
+          "subscriptions are Sub.none (src/Frontend.elm:28); url events map to FNoop (src/Frontend.elm:29-30)",
+          "update validates a non-empty trimmed name before registering (src/Frontend.elm:50-62)"
+        ]
+      }
+    },
+    {
+      "id": "CL-27",
+      "kind": "class",
+      "name": "Backend",
+      "layer": "controller",
+      "description": "Lamdera backend controller (module Backend). The single source of truth for the shared game state; applies ToBackend requests through GameLogic/FrontendHelpers and broadcasts state to all clients. Also owns lobby management (register/kick/kill, 5-player limit) and tile-draw-stack shuffling via Random.",
+      "code_ref": ["src/Backend.elm:1"],
+      "unverified": null,
+      "detail": {
+        "layer": "controller",
+        "fully_detailed": true,
+        "attributes": [],
+        "methods": [
+          { "name": "app", "params": "", "returns": "Lamdera backend record", "visibility": "+", "code_ref": "src/Backend.elm:18-25" },
+          { "name": "init", "params": "", "returns": "( Model, Cmd BackendMsg )", "visibility": "+", "code_ref": "src/Backend.elm:28-34" },
+          { "name": "update", "params": "BackendMsg, Model", "returns": "( Model, Cmd BackendMsg )", "visibility": "+", "code_ref": "src/Backend.elm:37-87" },
+          { "name": "updateFromFrontend", "params": "SessionId, ClientId, ToBackend, Model", "returns": "( Model, Cmd BackendMsg )", "visibility": "+", "code_ref": "src/Backend.elm:90-186" },
+          { "name": "subscriptions", "params": "a (model ignored)", "returns": "Sub BackendMsg", "visibility": "+", "code_ref": "src/Backend.elm:189-191" }
+        ],
+        "annotations": [
+          "Lamdera backend endpoint: Lamdera.backend { init, update, updateFromFrontend, subscriptions } (src/Backend.elm:18-25)",
+          "lobby limit enforced via playerLimit (src/Backend.elm:110-118)",
+          "a late RegisterPlayer during a game gets JoinedGame with the current state (src/Backend.elm:120-123)",
+          "when no tile from the shuffled draw stack is playable, the game is finished (src/Backend.elm:76-84)",
+          "subscriptions wires Lamdera.onConnect to ClientConnected (src/Backend.elm:189-191)"
+        ]
+      }
+    },
+    {
+      "id": "CL-28",
+      "kind": "class",
+      "name": "GameView",
+      "layer": "component",
+      "description": "Main game screen component (module Views.GameView). Renders the tile grid, meeple overlay, placeable-cell overlay, meeple-placement overlay, debug sideId overlay and the score sidebar; branches on GameState. Dispatches game-move FrontendMsg intents from click handlers.",
+      "code_ref": ["src/Views/GameView.elm:1"],
+      "unverified": null,
+      "detail": {
+        "layer": "component",
+        "fully_detailed": true,
+        "attributes": [],
+        "methods": [
+          { "name": "renderGameView", "params": "PlayerName, Game, Bool (debugMode)", "returns": "Html FrontendMsg", "visibility": "+", "code_ref": "src/Views/GameView.elm:21-194" },
+          { "name": "viewTileGrid", "params": "TileGrid", "returns": "Html FrontendMsg", "visibility": "+", "code_ref": "src/Views/GameView.elm:197-245" },
+          { "name": "viewPlaceableGrid", "params": "TileGrid, Set Coordinate", "returns": "Html FrontendMsg", "visibility": "+", "code_ref": "src/Views/GameView.elm:268-317" },
+          { "name": "viewMeeplePositionsOverlay", "params": "TileGrid, Coordinate, List MeeplePosition", "returns": "Html FrontendMsg", "visibility": "+", "code_ref": "src/Views/GameView.elm:335-398" },
+          { "name": "viewMeepleGrid", "params": "TileGrid, Meeples", "returns": "Html FrontendMsg", "visibility": "+", "code_ref": "src/Views/GameView.elm:426-479" },
+          { "name": "viewDebugOverlay", "params": "TileGrid", "returns": "Html FrontendMsg", "visibility": "+", "code_ref": "src/Views/GameView.elm:542-592" },
+          { "name": "renderSideBar", "params": "Game, PlayerName", "returns": "Html FrontendMsg", "visibility": "+", "code_ref": "src/Views/GameView.elm:641-750" }
+        ],
+        "annotations": [
+          "state read: Game.tileGrid, Game.meeples, Game.playerMeeples, Game.playerScores, Game.currentPlayer, Game.players, Game.gameState, Game.lastPlacedTile, Game.tileToPlace (src/Views/GameView.elm:49,56,62,125-129,26,641-700)",
+          "dispatched msgs: FePlaceTile (src/Views/GameView.elm:327), FePlaceMeeple incl. Skip (src/Views/GameView.elm:393,533), FeRotateTileLeft (src/Views/GameView.elm:741), FeTerminateGame (src/Views/GameView.elm:744), ChangeDebugMode (src/Views/GameView.elm:747)",
+          "overlay layers rendered only for the current player (src/Views/GameView.elm:58,121)"
+        ]
+      }
+    },
+    {
+      "id": "CL-29",
+      "kind": "class",
+      "name": "PlayerLobbyView",
+      "layer": "component",
+      "description": "Lobby screen component (module Views.PlayerLobbyView): shows registered players, a per-player kick link and the Start button.",
+      "code_ref": ["src/Views/PlayerLobbyView.elm:1"],
+      "unverified": null,
+      "detail": {
+        "layer": "component",
+        "fully_detailed": true,
+        "attributes": [],
+        "methods": [
+          { "name": "renderPlayerLobbyView", "params": "String, List PlayerName", "returns": "Html FrontendMsg", "visibility": "+", "code_ref": "src/Views/PlayerLobbyView.elm:11-24" },
+          { "name": "renderPlayerNames", "params": "List PlayerName", "returns": "Html FrontendMsg", "visibility": "+", "code_ref": "src/Views/PlayerLobbyView.elm:27-39" }
+        ],
+        "annotations": [
+          "state read: own PlayerName + List PlayerName from FeLobby (src/Frontend.elm:166)",
+          "dispatched msgs: FeInitializeGame (src/Views/PlayerLobbyView.elm:21), Kick (src/Views/PlayerLobbyView.elm:35)"
+        ]
+      }
+    },
+    {
+      "id": "CL-30",
+      "kind": "class",
+      "name": "PlayerRegistrationView",
+      "layer": "component",
+      "description": "Registration screen component (module Views.PlayerRegistrationView): name input form with Join button, error box, and a Kill-lobby button when the lobby is full.",
+      "code_ref": ["src/Views/PlayerRegistrationView.elm:1"],
+      "unverified": null,
+      "detail": {
+        "layer": "component",
+        "fully_detailed": true,
+        "attributes": [],
+        "methods": [
+          { "name": "renderPlayerRegistrationView", "params": "PlayerName, Maybe String (error)", "returns": "Html FrontendMsg", "visibility": "+", "code_ref": "src/Views/PlayerRegistrationView.elm:11-46" }
+        ],
+        "annotations": [
+          "state read: nameInput + error from FePlayerRegistration (src/Frontend.elm:163)",
+          "dispatched msgs: Register via onSubmit/onClick (src/Views/PlayerRegistrationView.elm:16,26), NameInputChanged via onInput (src/Views/PlayerRegistrationView.elm:21), FeKillLobby only when error == Just \"Lobby is full.\" (src/Views/PlayerRegistrationView.elm:29-33)"
+        ]
+      }
+    },
+    {
+      "id": "CL-31",
+      "kind": "class",
+      "name": "Styles",
+      "layer": "component",
+      "description": "UI styling helper module (module Styles): named Html.Attribute lists (container, inputBox, buttonMain, errorBox, playerList, playerItem) shared by the three views.",
+      "code_ref": ["src/Styles.elm:1"],
+      "unverified": null,
+      "detail": {
+        "layer": "component",
+        "fully_detailed": false,
+        "attributes": [
+          { "name": "container", "type": "List (Html.Attribute msg)", "visibility": "+", "code_ref": "src/Styles.elm:7-15" },
+          { "name": "inputBox", "type": "List (Html.Attribute msg)", "visibility": "+", "code_ref": "src/Styles.elm:19-28" }
+        ],
+        "methods": [],
+        "annotations": ["remaining values (buttonMain, errorBox, playerList, playerItem) in src/Styles.elm:1-73"]
+      }
+    },
+    {
+      "id": "CL-32",
+      "kind": "class_group",
+      "name": "Evergreen Lamdera state snapshots (V1/V3/V5/V10)",
+      "layer": "model",
+      "description": "Compiler-generated Lamdera Evergreen snapshot copies of the live types (FrontendModel/BackendModel/FrontendMsg/ToBackend/BackendMsg/ToFrontend plus the Game/Tile/Meeple/Feature/GameState/Coordinate/PlayerName subtrees) at versions V1, V3, V5, V10, with per-version migration stubs in Evergreen.Migrate. They mirror current types (see the generation header at src/Evergreen/Migrate/V10.elm:3) and exist for Lamdera state-versioning/migration, so they are modeled as one group rather than individual classes. Note: the V10 snapshot carries extra constructors not present in the live types (FrontendMsg.ClearError at src/Evergreen/V10/Types.elm:47, BackendMsg.NoOpBackendMsg at src/Evergreen/V10/Types.elm:66), confirming they are frozen snapshots rather than the live definitions.",
+      "code_ref": ["src/Evergreen/Migrate/V10.elm:3", "src/Evergreen/V10/Types.elm:11-88", "src/Evergreen/Migrate/V3.elm:1", "src/Evergreen/Migrate/V5.elm:1"],
+      "unverified": null,
+      "detail": {
+        "layer": "model",
+        "description": "23 snapshot/migration files under src/Evergreen/ across V1, V3, V5 and V10",
+        "paths": ["src/Evergreen/"]
+      }
+    },
+    {
+      "id": "CL-33",
+      "kind": "class_group",
+      "name": "Unit tests (GameLogicTests, MeepleTests)",
+      "layer": "service",
+      "description": "elm-test suites pinning core rule behavior: GameLogicTests covers isRotatedCorrectly (rotation/feature consistency), tileCanBePlaced (neighbor feature matching) and getCoordinatesToBePlacedOn (legal placement set); MeepleTests covers getFeatureOwners (majority ownership, including ties).",
+      "code_ref": ["tests/GameLogicTests.elm:1", "tests/MeepleTests.elm:1"],
+      "unverified": null,
+      "detail": {
+        "layer": "service",
+        "description": "2 test modules",
+        "paths": ["tests/"],
+        "pinned_behaviors": [
+          { "behavior": "isRotatedCorrectly", "code_ref": "tests/GameLogicTests.elm:14-16" },
+          { "behavior": "tileCanBePlaced", "code_ref": "tests/GameLogicTests.elm:60-62" },
+          { "behavior": "getCoordinatesToBePlacedOn", "code_ref": "tests/GameLogicTests.elm:162-164" },
+          { "behavior": "getFeatureOwners", "code_ref": "tests/MeepleTests.elm:12-14" }
+        ]
+      }
+    },
+    {
+      "id": "CL-R1",
+      "kind": "relationship",
+      "name": "Game contains TileGrid",
+      "layer": "model",
+      "description": "Composition: Game holds exactly one TileGrid (its board).",
+      "code_ref": ["src/Types/Game.elm:38"],
+      "unverified": null,
+      "detail": { "from": "CL-1", "to": "CL-6", "type": "composition", "multiplicity": "1", "code_ref": "src/Types/Game.elm:38" }
+    },
+    {
+      "id": "CL-R2",
+      "kind": "relationship",
+      "name": "TileGrid contains Tile",
+      "layer": "model",
+      "description": "Composition: TileGrid is a Dict from Coordinate to Tile, so a board holds 1..* placed tiles (starts with the single (0,0) tile).",
+      "code_ref": ["src/Types/Game.elm:20-21", "src/Types/Game.elm:102-104"],
+      "unverified": null,
+      "detail": { "from": "CL-6", "to": "CL-2", "type": "composition", "multiplicity": "1..*", "code_ref": "src/Types/Game.elm:20-21" }
+    },
+    {
+      "id": "CL-R3",
+      "kind": "relationship",
+      "name": "Game contains Meeples",
+      "layer": "model",
+      "description": "Composition: Game holds exactly one Meeples dictionary of placed meeples.",
+      "code_ref": ["src/Types/Game.elm:39"],
+      "unverified": null,
+      "detail": { "from": "CL-1", "to": "CL-8", "type": "composition", "multiplicity": "1", "code_ref": "src/Types/Game.elm:39" }
+    },
+    {
+      "id": "CL-R4",
+      "kind": "relationship",
+      "name": "Meeples aggregates Meeple",
+      "layer": "model",
+      "description": "Aggregation: Meeples maps feature SideIds to lists of Meeple (0..* per feature; empty dict at game start).",
+      "code_ref": ["src/Types/Game.elm:24-25", "src/Types/Game.elm:72"],
+      "unverified": null,
+      "detail": { "from": "CL-8", "to": "CL-9", "type": "aggregation", "multiplicity": "0..*", "code_ref": "src/Types/Game.elm:24-25" }
+    },
+    {
+      "id": "CL-R5",
+      "kind": "relationship",
+      "name": "Tile contains Side",
+      "layer": "model",
+      "description": "Composition: every Tile owns exactly four Side values (north, east, south, west).",
+      "code_ref": ["src/Types/Tile.elm:24-27"],
+      "unverified": null,
+      "detail": { "from": "CL-2", "to": "CL-3", "type": "composition", "multiplicity": "4", "code_ref": "src/Types/Tile.elm:24-27" }
+    },
+    {
+      "id": "CL-R6",
+      "kind": "relationship",
+      "name": "Tile optionally contains cloister SideId",
+      "layer": "model",
+      "description": "Optional composition: Tile.cloister is Maybe SideId — 0..1 cloister side (tiles 3 and 4 in the base set).",
+      "code_ref": ["src/Types/Tile.elm:28", "src/Helpers/TileMapper.elm:49"],
+      "unverified": null,
+      "detail": { "from": "CL-2", "to": "CL-5", "type": "composition", "multiplicity": "0..1", "code_ref": "src/Types/Tile.elm:28" }
+    },
+    {
+      "id": "CL-R7",
+      "kind": "relationship",
+      "name": "Side references Feature",
+      "layer": "model",
+      "description": "Composition: each Side carries one Feature describing what borders that edge.",
+      "code_ref": ["src/Types/Tile.elm:17"],
+      "unverified": null,
+      "detail": { "from": "CL-3", "to": "CL-11", "type": "composition", "multiplicity": "1", "code_ref": "src/Types/Tile.elm:17" }
+    },
+    {
+      "id": "CL-R8",
+      "kind": "relationship",
+      "name": "Meeple owned by PlayerIndex",
+      "layer": "model",
+      "description": "Association: Meeple.owner references the positional index of its owner in Game.players.",
+      "code_ref": ["src/Types/Meeple.elm:18", "src/Helpers/GameLogic.elm:388"],
+      "unverified": null,
+      "detail": { "from": "CL-9", "to": "CL-14", "type": "association", "multiplicity": "1", "code_ref": "src/Types/Meeple.elm:18" }
+    },
+    {
+      "id": "CL-R9",
+      "kind": "relationship",
+      "name": "Meeple placed at Coordinate",
+      "layer": "model",
+      "description": "Association: Meeple.coordinates references the tile coordinate it sits on (set to Game.lastPlacedTile at placement).",
+      "code_ref": ["src/Types/Meeple.elm:19", "src/Helpers/GameLogic.elm:389"],
+      "unverified": null,
+      "detail": { "from": "CL-9", "to": "CL-13", "type": "association", "multiplicity": "1", "code_ref": "src/Types/Meeple.elm:19" }
+    },
+    {
+      "id": "CL-R10",
+      "kind": "relationship",
+      "name": "Game depends on TileMapper",
+      "layer": "model",
+      "description": "Module dependency: Types.Game imports Helpers.TileMapper and builds the initial tile/draw stack via getTile (starting tile at (0,0) is getTile 0).",
+      "code_ref": ["src/Types/Game.elm:5", "src/Types/Game.elm:66", "src/Types/Game.elm:104"],
+      "unverified": null,
+      "detail": { "from": "CL-1", "to": "CL-24", "type": "dependency", "multiplicity": "1", "code_ref": "src/Types/Game.elm:5" }
+    },
+    {
+      "id": "CL-R11",
+      "kind": "relationship",
+      "name": "GameLogic depends on TileMapper",
+      "layer": "service",
+      "description": "Module dependency: GameLogic imports getTile and compares the rotated tile against the canonical one in isRotatedCorrectly.",
+      "code_ref": ["src/Helpers/GameLogic.elm:5", "src/Helpers/GameLogic.elm:50"],
+      "unverified": null,
+      "detail": { "from": "CL-23", "to": "CL-24", "type": "dependency", "multiplicity": "1", "code_ref": "src/Helpers/GameLogic.elm:5" }
+    },
+    {
+      "id": "CL-R12",
+      "kind": "relationship",
+      "name": "GameLogic operates on Game",
+      "layer": "service",
+      "description": "Module dependency: GameLogic imports Types.Game and implements Game -> Game transformations (placeTile, placeMeeple, finishGame).",
+      "code_ref": ["src/Helpers/GameLogic.elm:10", "src/Helpers/GameLogic.elm:323", "src/Helpers/GameLogic.elm:383", "src/Helpers/GameLogic.elm:511"],
+      "unverified": null,
+      "detail": { "from": "CL-23", "to": "CL-1", "type": "dependency", "multiplicity": "1..*", "code_ref": "src/Helpers/GameLogic.elm:10" }
+    },
+    {
+      "id": "CL-R13",
+      "kind": "relationship",
+      "name": "Backend calls GameLogic",
+      "layer": "controller",
+      "description": "Module dependency: Backend applies game moves by calling GameLogic.placeTile, placeMeeple, rotateLeft and finishGame, then broadcasts the resulting state.",
+      "code_ref": ["src/Backend.elm:4", "src/Backend.elm:154", "src/Backend.elm:164", "src/Backend.elm:174", "src/Backend.elm:180"],
+      "unverified": null,
+      "detail": { "from": "CL-27", "to": "CL-23", "type": "dependency", "multiplicity": "1..*", "code_ref": "src/Backend.elm:4" }
+    },
+    {
+      "id": "CL-R14",
+      "kind": "relationship",
+      "name": "Backend calls FrontendHelpers",
+      "layer": "controller",
+      "description": "Module dependency: Backend uses getPlayableTileFromDrawstack to pick the next tile after each shuffle (game init and post-meeple moves).",
+      "code_ref": ["src/Backend.elm:3", "src/Backend.elm:47", "src/Backend.elm:62"],
+      "unverified": null,
+      "detail": { "from": "CL-27", "to": "CL-25", "type": "dependency", "multiplicity": "1..*", "code_ref": "src/Backend.elm:3" }
+    },
+    {
+      "id": "CL-R15",
+      "kind": "relationship",
+      "name": "Backend depends on Types (protocol types)",
+      "layer": "controller",
+      "description": "Module dependency: Backend imports the shared protocol types (BackendModel, BackendMsg, ToBackend, ToFrontend) and aliases Model to BackendModel.",
+      "code_ref": ["src/Backend.elm:9", "src/Backend.elm:14-15"],
+      "unverified": null,
+      "detail": { "from": "CL-27", "to": "CL-18", "type": "dependency", "multiplicity": "1", "code_ref": "src/Backend.elm:9" }
+    },
+    {
+      "id": "CL-R16",
+      "kind": "relationship",
+      "name": "Frontend depends on Types (protocol types)",
+      "layer": "controller",
+      "description": "Module dependency: Frontend imports the shared protocol types and aliases Model to FrontendModel.",
+      "code_ref": ["src/Frontend.elm:6", "src/Frontend.elm:13-14"],
+      "unverified": null,
+      "detail": { "from": "CL-26", "to": "CL-17", "type": "dependency", "multiplicity": "1", "code_ref": "src/Frontend.elm:6" }
+    },
+    {
+      "id": "CL-R17",
+      "kind": "relationship",
+      "name": "Frontend renders GameView",
+      "layer": "component",
+      "description": "Module dependency: Frontend.view delegates the FeGamePlayed screen to renderGameView.",
+      "code_ref": ["src/Frontend.elm:8", "src/Frontend.elm:168-169"],
+      "unverified": null,
+      "detail": { "from": "CL-26", "to": "CL-28", "type": "dependency", "multiplicity": "1", "code_ref": "src/Frontend.elm:8" }
+    },
+    {
+      "id": "CL-R18",
+      "kind": "relationship",
+      "name": "Frontend renders PlayerLobbyView",
+      "layer": "component",
+      "description": "Module dependency: Frontend.view delegates the FeLobby screen to renderPlayerLobbyView.",
+      "code_ref": ["src/Frontend.elm:9", "src/Frontend.elm:165-166"],
+      "unverified": null,
+      "detail": { "from": "CL-26", "to": "CL-29", "type": "dependency", "multiplicity": "1", "code_ref": "src/Frontend.elm:9" }
+    },
+    {
+      "id": "CL-R19",
+      "kind": "relationship",
+      "name": "Frontend renders PlayerRegistrationView",
+      "layer": "component",
+      "description": "Module dependency: Frontend.view delegates the FePlayerRegistration screen to renderPlayerRegistrationView.",
+      "code_ref": ["src/Frontend.elm:10", "src/Frontend.elm:162-163"],
+      "unverified": null,
+      "detail": { "from": "CL-26", "to": "CL-30", "type": "dependency", "multiplicity": "1", "code_ref": "src/Frontend.elm:10" }
+    },
+    {
+      "id": "CL-R20",
+      "kind": "relationship",
+      "name": "FrontendMsg maps to ToBackend",
+      "layer": "dto",
+      "description": "Association across the wire: Frontend.update translates user intents (Register, Kick, FeInitializeGame, FeRotateTileLeft, FePlaceTile, FePlaceMeeple, FeTerminateGame, FeKillLobby) into ToBackend requests via sendToBackend.",
+      "code_ref": ["src/Frontend.elm:50-89"],
+      "unverified": null,
+      "detail": { "from": "CL-19", "to": "CL-20", "type": "association", "multiplicity": "1..*", "code_ref": "src/Frontend.elm:61" }
+    },
+    {
+      "id": "CL-R21",
+      "kind": "relationship",
+      "name": "ToFrontend drives FrontendModel",
+      "layer": "dto",
+      "description": "Association across the wire: Frontend.updateFromBackend applies ToFrontend messages to the client's FrontendModel (lobby updates, game-state pushes, screen transitions).",
+      "code_ref": ["src/Frontend.elm:92-156"],
+      "unverified": null,
+      "detail": { "from": "CL-22", "to": "CL-17", "type": "association", "multiplicity": "1..*", "code_ref": "src/Frontend.elm:92" }
+    },
+    {
+      "id": "CL-R22",
+      "kind": "relationship",
+      "name": "ToBackend drives BackendModel",
+      "layer": "dto",
+      "description": "Association across the wire: Backend.updateFromFrontend applies ToBackend requests to the shared BackendModel and replies via broadcast/sendToFrontend.",
+      "code_ref": ["src/Backend.elm:90-186"],
+      "unverified": null,
+      "detail": { "from": "CL-20", "to": "CL-18", "type": "association", "multiplicity": "1..*", "code_ref": "src/Backend.elm:90" }
+    },
+    {
+      "id": "CL-R23",
+      "kind": "relationship",
+      "name": "GameView uses FrontendHelpers",
+      "layer": "component",
+      "description": "Module dependency: GameView imports Helpers.FrontendHelpers to highlight legal tile placements (getCoordinatesToBePlacedOn) and legal meeple positions (getMeeplePositionsToBePlacedOn).",
+      "code_ref": ["src/Views/GameView.elm:5", "src/Views/GameView.elm:62", "src/Views/GameView.elm:129"],
+      "unverified": null,
+      "detail": { "from": "CL-28", "to": "CL-25", "type": "dependency", "multiplicity": "1..*", "code_ref": "src/Views/GameView.elm:5" }
+    },
+    {
+      "id": "CL-R24",
+      "kind": "relationship",
+      "name": "GameView renders Game state",
+      "layer": "component",
+      "description": "Module dependency: GameView imports Types.Game and its signature consumes the full Game record; it branches on game.gameState.",
+      "code_ref": ["src/Views/GameView.elm:13", "src/Views/GameView.elm:21-28"],
+      "unverified": null,
+      "detail": { "from": "CL-28", "to": "CL-1", "type": "dependency", "multiplicity": "1", "code_ref": "src/Views/GameView.elm:13" }
+    },
+    {
+      "id": "CL-R25",
+      "kind": "relationship",
+      "name": "PlayerLobbyView dispatches FrontendMsg",
+      "layer": "component",
+      "description": "Association: the lobby view emits FrontendMsg intents (FeInitializeGame, Kick) through Html onClick handlers.",
+      "code_ref": ["src/Views/PlayerLobbyView.elm:7", "src/Views/PlayerLobbyView.elm:21", "src/Views/PlayerLobbyView.elm:35"],
+      "unverified": null,
+      "detail": { "from": "CL-29", "to": "CL-19", "type": "association", "multiplicity": "0..*", "code_ref": "src/Views/PlayerLobbyView.elm:21" }
+    },
+    {
+      "id": "CL-R26",
+      "kind": "relationship",
+      "name": "PlayerRegistrationView dispatches FrontendMsg",
+      "layer": "component",
+      "description": "Association: the registration view emits FrontendMsg intents (NameInputChanged, Register, FeKillLobby) through input/form/button handlers.",
+      "code_ref": ["src/Views/PlayerRegistrationView.elm:7", "src/Views/PlayerRegistrationView.elm:16", "src/Views/PlayerRegistrationView.elm:21"],
+      "unverified": null,
+      "detail": { "from": "CL-30", "to": "CL-19", "type": "association", "multiplicity": "0..*", "code_ref": "src/Views/PlayerRegistrationView.elm:16" }
+    },
+    {
+      "id": "CL-R27",
+      "kind": "relationship",
+      "name": "GameView dispatches FrontendMsg",
+      "layer": "component",
+      "description": "Association: the game view emits game-move FrontendMsg intents (FePlaceTile, FePlaceMeeple, FeRotateTileLeft, FeTerminateGame, ChangeDebugMode) through onClick handlers.",
+      "code_ref": ["src/Views/GameView.elm:11", "src/Views/GameView.elm:327", "src/Views/GameView.elm:533", "src/Views/GameView.elm:741"],
+      "unverified": null,
+      "detail": { "from": "CL-28", "to": "CL-19", "type": "association", "multiplicity": "0..*", "code_ref": "src/Views/GameView.elm:327" }
+    },
+    {
+      "id": "CL-R28",
+      "kind": "relationship",
+      "name": "FrontendHelpers uses GameLogic",
+      "layer": "service",
+      "description": "Module dependency: FrontendHelpers imports rotateLeft from GameLogic to test all four rotations in tileCanBePlacedAnywhere.",
+      "code_ref": ["src/Helpers/FrontendHelpers.elm:4", "src/Helpers/FrontendHelpers.elm:123-125"],
+      "unverified": null,
+      "detail": { "from": "CL-25", "to": "CL-23", "type": "dependency", "multiplicity": "1..*", "code_ref": "src/Helpers/FrontendHelpers.elm:4" }
+    },
+    {
+      "id": "CL-R29",
+      "kind": "relationship",
+      "name": "FrontendHelpers uses TileMapper",
+      "layer": "service",
+      "description": "Module dependency: FrontendHelpers imports getTile to materialize candidate tiles from the draw stack in getPlayableTileFromDrawstack.",
+      "code_ref": ["src/Helpers/FrontendHelpers.elm:5", "src/Helpers/FrontendHelpers.elm:136"],
+      "unverified": null,
+      "detail": { "from": "CL-25", "to": "CL-24", "type": "dependency", "multiplicity": "1..*", "code_ref": "src/Helpers/FrontendHelpers.elm:5" }
+    },
+    {
+      "id": "CL-R30",
+      "kind": "relationship",
+      "name": "Game composes Tile (tileToPlace)",
+      "layer": "model",
+      "description": "Composition: Game holds the pending tile to place as a direct field (Game also pulls in Meeple/Feature/Coordinate/PlayerIndex/PlayerName/Score via its Types.Game imports).",
+      "code_ref": ["src/Types/Game.elm:33", "src/Types/Game.elm:7-13"],
+      "unverified": null,
+      "detail": { "from": "CL-1", "to": "CL-2", "type": "composition", "multiplicity": "1", "code_ref": "src/Types/Game.elm:33" }
+    },
+    {
+      "id": "CL-R31",
+      "kind": "relationship",
+      "name": "GameLogicTests exercise GameLogic/FrontendHelpers/TileMapper",
+      "layer": "service",
+      "description": "Test dependency: GameLogicTests imports all three helper modules and pins isRotatedCorrectly, tileCanBePlaced and getCoordinatesToBePlacedOn.",
+      "code_ref": ["tests/GameLogicTests.elm:4-6", "tests/GameLogicTests.elm:14", "tests/GameLogicTests.elm:60", "tests/GameLogicTests.elm:162"],
+      "unverified": null,
+      "detail": { "from": "CL-33", "to": "CL-23", "type": "dependency", "multiplicity": "1", "code_ref": "tests/GameLogicTests.elm:5" }
+    },
+    {
+      "id": "CL-R32",
+      "kind": "relationship",
+      "name": "MeepleTests exercise GameLogic.getFeatureOwners",
+      "layer": "service",
+      "description": "Test dependency: MeepleTests imports getFeatureOwners from GameLogic and pins majority/owner computation.",
+      "code_ref": ["tests/MeepleTests.elm:5", "tests/MeepleTests.elm:12"],
+      "unverified": null,
+      "detail": { "from": "CL-33", "to": "CL-23", "type": "dependency", "multiplicity": "1", "code_ref": "tests/MeepleTests.elm:5" }
+    },
+    {
+      "id": "CL-R33",
+      "kind": "relationship",
+      "name": "Game state transitions via GameState",
+      "layer": "model",
+      "description": "Directed (state machine): placeTile transitions PlaceTileState -> PlaceMeepleState, placeMeeple transitions PlaceMeepleState -> PlaceTileState, finishGame sets FinishedState; GameView renders per state.",
+      "code_ref": ["src/Helpers/GameLogic.elm:367", "src/Helpers/GameLogic.elm:507", "src/Helpers/GameLogic.elm:555", "src/Views/GameView.elm:28-29"],
+      "unverified": null,
+      "detail": { "from": "CL-12", "to": "CL-1", "type": "directed", "multiplicity": "1..*", "code_ref": "src/Helpers/GameLogic.elm:367" }
+    }
+  ],
+  "gaps": [
+    "Elm has no inheritance/hierarchy — no inheritance relationships were modeled or invented; the closest structural relationships are record composition (field types) and module dependencies (imports).",
+    "Elm has no visibility system; everything a module exports is public. All attributes/methods are therefore marked '+' (GameLogic/TileMapper/FrontendHelpers export everything via 'exposing (..)'; TileMapper exports only getTile, Frontend exports only Model and app).",
+    "The planner named 'isTilePlacementValid' and 'getMeeplePositions' — no functions with those exact names exist; the realized equivalents are FrontendHelpers.tileCanBePlaced / tileCanBePlacedAnywhere (src/Helpers/FrontendHelpers.elm:48,120) and FrontendHelpers.getMeeplePositionsToBePlacedOn (src/Helpers/FrontendHelpers.elm:27).",
+    "There is no independent data-access layer: the Lamdera backend (Backend.elm) is the shared authoritative state and the frontend keeps a full copy of Game for rendering; state sync happens via the ToBackend/ToFrontend protocol, not a repository. Layer names reflect this (controller = Backend/Frontend, service = rule modules, no data-access tier exists).",
+    "Tile side-merging on placement is handled by SideId rewriting (replaceTileSideId) rather than explicit feature-graph objects; the 'feature' abstraction is the SideId int across tiles, so a dedicated Feature-graph class does not exist to model.",
+    "Evergreen snapshot details (per-version type shapes) were not individually inventoried; the group entry (CL-32) covers them as compiler-generated mirrors, per the scope note."
+  ]
+}

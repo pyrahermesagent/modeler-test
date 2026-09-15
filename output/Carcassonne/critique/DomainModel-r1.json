@@ -1,0 +1,51 @@
+{
+  "artifact": "DomainModel.md",
+  "round": 1,
+  "citations_total": 335,
+  "citations_sampled": 188,
+  "truncated": false,
+  "adjudication": [],
+  "summary": "All sections present; 170/170 citations resolve in-range; 1 major semantic defect (RL2 draw-stack behavior) + 3 minor citation/wording fixes.",
+  "defects": [
+    {
+      "id": "S-1",
+      "severity": "major",
+      "category": "semantic",
+      "location": "Section 6, rule RL2 (artifact line 268)",
+      "claim": "If the drawn tile cannot be placed anywhere, a new tile is drawn (the unplaceable one is left in the reshuffled stack)",
+      "problem": "The code discards unplaceable tiles from the draw stack (getPlayableTileFromDrawstack recurses on rest, dropping the head); a dropped tile can never be placed.",
+      "evidence": "src/Helpers/FrontendHelpers.elm:132-143 getPlayableTileFromDrawstack; src/Backend.elm:53 and :69 assign the returned stack directly",
+      "fix_instruction": "Replace the parenthetical with '(unplaceable tiles are skipped and silently dropped from the draw stack \u2014 they are never re-inserted and can never be placed)'; optionally add a Section 10 note on this divergence from readme.md:59."
+    },
+    {
+      "id": "C-1",
+      "severity": "minor",
+      "category": "citation",
+      "location": "Section 1, System Name (artifact line 12)",
+      "claim": "Elm 0.19.1 + Lamdera \u2014 ... `elm.json:6`, `elm.json:12-15`, `src/Backend.elm:18-25`",
+      "problem": "elm.json:12-15 lists elm/html, elm/random, elm/url, random-extra \u2014 not Lamdera; the Lamdera deps are at lines 17-18.",
+      "evidence": "elm.json:17-18 = lamdera/codecs, lamdera/core",
+      "fix_instruction": "Change `elm.json:12-15` to `elm.json:17-18`."
+    },
+    {
+      "id": "C-2",
+      "severity": "minor",
+      "category": "citation",
+      "location": "Section 10, item 7 (artifact line 330)",
+      "claim": "implied by `src/Evergreen/Migrate/V10.elm:3-18` and `elm.json:13-14`",
+      "problem": "elm.json:13-14 are elm/random and elm/url \u2014 support nothing about Evergreen/Lamdera serialization.",
+      "evidence": "elm.json:13-14 = elm/random, elm/url",
+      "fix_instruction": "Drop `elm.json:13-14` from this item; keep only `src/Evergreen/Migrate/V10.elm:3-18` (still UNVERIFIED)."
+    },
+    {
+      "id": "S-2",
+      "severity": "minor",
+      "category": "semantic",
+      "location": "Section 7 Domain Events table, PlayerRegistered row (artifact line 291)",
+      "claim": "also re-broadcast to every client on each lobby change and on new connections",
+      "problem": "PlayerRegistrationUpdated is sent on new connections, accepted registration (broadcast) and duplicate rejection \u2014 NOT on kick or kill (those broadcast PlayerKicked/LobbyKilled).",
+      "evidence": "src/Backend.elm:40-42, :99-102, :110-113; kick :125-133; kill :135-138",
+      "fix_instruction": "Reword to: '(re-sent to the registering client on new connections and duplicate-name rejection, and broadcast to all clients when another player registers)'."
+    }
+  ]
+}
