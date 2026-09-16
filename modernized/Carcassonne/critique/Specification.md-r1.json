@@ -1,0 +1,22 @@
+{
+  "artifact": "modernized/Carcassonne/Specification.md",
+  "round": 1,
+  "citations_total": 292,
+  "citations_sampled": 292,
+  "references_total": 396,
+  "defects": [
+    {
+      "id": "C-1",
+      "severity": "minor",
+      "category": "citation",
+      "location": "\u00a74 Functional Requirements, Core Features table, UC-06 row (line 106)",
+      "claim": "places under the target `SideId` ..., advances the turn, re-shuffles the draw stack (legacy `src/Helpers/GameLogic.elm:383-508`)",
+      "problem": "the 're-shuffles the draw stack' sub-claim is not supported by the cited range \u2014 GameLogic.elm:383-508 is placeMeeple, which contains no shuffle; the legacy re-shuffle is the backend Random.generate re-entry",
+      "evidence": "src/Helpers/GameLogic.elm:383-508 ends at line 508 with the record update `{ game | currentPlayer = getNextPlayer game, meeples = ..., gameState = PlaceTileState }` \u2014 no Random command in range. The actual legacy shuffle is `Random.generate TileDrawStackShuffled (Random.List.shuffle updatedGame.tileDrawStack)` at src/Backend.elm:177 (PlaceMeeple handler 170-178). The document already cites the correct lines for this same fact in \u00a73.1 (line 36), \u00a75 (line 121), and \u00a77 (line 152)",
+      "fix_instruction": "In the UC-06 row (line 106), add `src/Backend.elm:170-178` to the Code Reference cell (or move the shuffle sub-claim to be cited by `src/Backend.elm:177`) so every sub-claim in the row's legacy description is supported by a citation that actually contains it; no other change needed"
+    }
+  ],
+  "truncated": false,
+  "adjudication": [],
+  "summary": "Near-clean artifact: all 292 path:line citations (100% sampled, vs pinned repo ca279774) and all 16 source-artifact citations verified in bounds and claim-supporting; all M-1..M-8/K-1..K-7/A-1..A-13/I-1..I-5/D-1..D-2 refs resolve, every scoped ledger entry closed with the plan's terminal status and a visible in-body resolution; template sections 1-10 all present and substantive; directive stack (TS-first, React 19+Vite 7 / Node 24+ws 8.x) presented exactly per plan with Elm/Lamdera gone or marked replaced; Mermaid block balanced with a complete 9-node map. Only finding: one minor citation-precision gap in the UC-06 row (shuffle sub-claim cited to placeMeeple instead of Backend.elm:177). Note for the orchestrator: the plan's K-6/M-3 text says '9 server->client messages' but the code (src/Types.elm:67-86) and the plan's own enumeration contain exactly 8 \u2014 the document's '8' is correct; do not 'fix' it toward the plan's count."
+}

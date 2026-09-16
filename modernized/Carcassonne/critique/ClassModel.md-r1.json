@@ -1,0 +1,83 @@
+{
+  "artifact": "modernized/Carcassonne/ClassModel.md",
+  "round": 1,
+  "citations_total": 1100,
+  "citations_sampled": 1100,
+  "references_total": null,
+  "normalized": true,
+  "defects": [
+    {
+      "id": "C-1",
+      "severity": "major",
+      "category": "citation",
+      "location": "line 430 (TerminateGame row)",
+      "claim": "TerminateGame resets to an empty lobby and broadcasts `GameTerminated` (K-6; `src/Backend.elm:185-186`)",
+      "problem": "the cited range 185-186 is the fall-through drop clause `_ -> (model, Cmd.none)`, not the TerminateGame handler",
+      "evidence": "In the pinned repo (ca279774), the TerminateGame handler is at src/Backend.elm:180-183; plan entry K-6 cites exactly src/Backend.elm:180-183 for this fact",
+      "fix_instruction": "Change the citation at line 430 from `src/Backend.elm:185-186` to `src/Backend.elm:180-183`"
+    },
+    {
+      "id": "MINOR-1",
+      "severity": "minor",
+      "category": "internal_consistency",
+      "location": "line 478 (CL-22 note)",
+      "claim": "the 9th server->client variant is 'flagged in the plan-gaps note to the orchestrator'",
+      "problem": "dangling meta-reference - no such plan-gaps note exists anywhere in the document; the CL-22 table and Part 2 diagram list only 8 variants",
+      "evidence": "M-5 is out of ClassModel scope (artifact_scopes lists only M-1/2/3/4/6/8), so the omission of a 9th variant is correct; only the dangling note is a defect",
+      "fix_instruction": "Remove the dangling 'plan-gaps note' reference; reword the CL-22 note to state the 8 modeled variants and that M-5 is out of this document's scope, without referencing a non-existent note"
+    },
+    {
+      "id": "MINOR-2",
+      "severity": "minor",
+      "category": "internal_consistency",
+      "location": "line 1030 (\u00a78) vs line 67 (\u00a71.1)",
+      "claim": "\u00a78 labels CL-33 'replaced (M-6)' while \u00a71.1 lists it under M-6 as part of the '29 modernized, 4 replaced' count",
+      "problem": "label conflict - the same element is counted as modernized AND replaced",
+      "evidence": "the four replaced listed at line 67 are CL-19/21/31/32; \u00a78 says CL-33 'replaced (M-6)'",
+      "fix_instruction": "Reconcile the two counts so CL-33 is classified exactly once (e.g. adjust the line-67 tally to 28 modernized / 5 replaced including CL-33, or reword the \u00a78 label), keeping both places consistent"
+    },
+    {
+      "id": "MINOR-3",
+      "severity": "minor",
+      "category": "node_map",
+      "location": "Part 2 node map (~line 893)",
+      "claim": "Part 2 node map stubs 12 of the 13 cross-part names",
+      "problem": "missing `SideId` stub: the GameLogic box member `+ getAdjacentTileCloisterScores SideId` references the Part-1 SideId, and the document's own convention ('every class id in the block above, including Part 1 stubs it references') requires listing it",
+      "evidence": "Part 1 node map is complete (16/16); Part 2 is the sole miss",
+      "fix_instruction": "Add a `SideId` stub row to the Part 2 node map, styled like the other cross-part stub rows"
+    },
+    {
+      "id": "MINOR-4",
+      "severity": "minor",
+      "category": "citation",
+      "location": "line 505 (CL-17 note)",
+      "claim": "the registration `error` field 'was set only by the local Lobby is full. case (`src/Views/PlayerRegistrationView.elm:29-33`)'",
+      "problem": "PlayerRegistrationView.elm:29-33 only READS the error (renders kill-lobby button when error == Just \"Lobby is full.\"); it does not set it",
+      "evidence": "the actual setters are src/Frontend.elm:57 (\"Name cannot be empty.\"), :108, and :113 (LobbyIsFull)",
+      "fix_instruction": "Correct the claim: the error is set at src/Frontend.elm:57, :108, :113; PlayerRegistrationView.elm:29-33 only reads it"
+    },
+    {
+      "id": "MINOR-5",
+      "severity": "minor",
+      "category": "citation",
+      "location": "line 639 (CL-R13)",
+      "claim": "cites `src/Backend.elm:180` as GameLogic-call evidence",
+      "problem": ":180 is the TerminateGame clause; finishGame is at :80 (low-priority, inherited verbatim from the legacy artifact line 715)",
+      "evidence": "legacy line 715 cites `4, 154, 164, 174, 180`; in the pinned repo finishGame call is at src/Backend.elm:80",
+      "fix_instruction": "Replace or supplement `src/Backend.elm:180` in that cell with `src/Backend.elm:80` (finishGame) so the GameLogic-call evidence is supported"
+    },
+    {
+      "id": "MINOR-6",
+      "severity": "minor",
+      "category": "citation",
+      "location": "line 16 (header)",
+      "claim": "secondary citation `ClassModel.md:1125-1132` for the elm-review / `lamdera make compile` CI gates",
+      "problem": "points at the legacy Sources section, which does not describe CI gates",
+      "evidence": "the primary citation .github/workflows/test.yaml:33-45 does support the claim (verified: elm-review :36-37, lamdera make compile :39-43, elm-test :45-46)",
+      "fix_instruction": "Drop or replace the secondary citation `ClassModel.md:1125-1132`; keep the primary .github/workflows/test.yaml:33-45"
+    }
+  ],
+  "truncated": false,
+  "adjudication": [],
+  "summary": "Critic (agent-9, prose report normalized to JSON by orchestrator). Verdict: citation-accurate and internally consistent overall. 1 major defect (C-1) + 6 minors. Element counts verified (37 classes = 33 legacy + 4 added; 39 relationships; 32 diagrammed); all code facts vs pinned repo verified; all legacy-artifact and sibling-artifact citations confirmed; UNVERIFIED markers only inside the resolution table; all template sections present. Caveat from critic: template file was not visible in its workspace - verify heading mirror against /home/rosta/imobilothon2/templates/ClassModel.md."
+}

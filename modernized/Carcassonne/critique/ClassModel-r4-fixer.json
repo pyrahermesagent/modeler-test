@@ -1,0 +1,18 @@
+{
+  "artifact": "ClassModel.md",
+  "round": "r4-advisory",
+  "verdicts": [
+    {
+      "id": "S-1",
+      "verdict": "fixed",
+      "category": "decision_fidelity",
+      "detail": "M-5 message-count claims at ClassModel.md:478 (message-count table row) and :517 (M-5 section heading/section body) changed from '8 legacy + 1 new (M-5) = 9' to the accurate '8 legacy + 2 new (M-5: RegistrationRejected, InvalidMove) = 10', with new code citations src/Backend.elm:99-102 and src/Backend.elm:185-186 (line 185 has both new constructors; verified on-disk). The earlier text over-counted by omitting InvalidMove. No other tables or claims affected; scope floors, honesty sections, and Mermaid untouched."
+    }
+  ],
+  "citations_changed": [
+    "src/Backend.elm:99-102 (added)",
+    "src/Backend.elm:185-186 (added)"
+  ],
+  "unresolvable": [],
+  "notes_for_orchestrator": "S-1 fixed. No plan changes needed; plan's M-3/K-6 '9' count stands as a plan-level count error already flagged in UseCaseModel (per orchestrator instructions, not re-opened here)."
+}

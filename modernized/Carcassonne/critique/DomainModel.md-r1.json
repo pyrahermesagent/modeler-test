@@ -1,0 +1,62 @@
+{
+  "artifact": "modernized/Carcassonne/DomainModel.md",
+  "round": 1,
+  "citations_total": 311,
+  "citations_sampled": 160,
+  "references_total": 322,
+  "defects": [
+    {
+      "id": "C-1",
+      "severity": "minor",
+      "category": "citation",
+      "location": "Section 3 (Bounded Contexts), line 51",
+      "claim": "they were two exclusive variants of one state record switched through the BackendModel/FrontendModel constructors of the single Lamdera process (src/Types.elm:11-17)",
+      "problem": "The cited range covers only BackendModel; FrontendModel is defined at src/Types.elm:20-33, so the citation does not support the FrontendModel half of the claim.",
+      "evidence": "src/Types.elm:11-17 = `type BackendModel = BePlayerRegistration { players : List PlayerName } | BeGamePlayed { game : Game }`; FrontendModel = FePlayerRegistration | FeLobby | FeGamePlayed lives at src/Types.elm:20-33",
+      "fix_instruction": "Extend the citation to `src/Types.elm:11-17, 20-33` (or add a second citation for FrontendModel at 20-33) on line 51."
+    },
+    {
+      "id": "C-2",
+      "severity": "minor",
+      "category": "citation",
+      "location": "Section 2 glossary, term 4 (SideId), line 30",
+      "claim": "allocated sequentially from `nextSideId` when a tile is placed | src/Types/Tile.elm:11-12, src/Helpers/GameLogic.elm:102-131, readme.md:101",
+      "problem": "The cited range 102-131 shows SideId rewriting/merging (replaceTileSideId body), not the allocation; the allocation the claim describes happens elsewhere.",
+      "evidence": "Allocation is at src/Helpers/GameLogic.elm:329 (`updateSideIds (game.nextSideId + 1) game.tileToPlace`) with nextSideId updated at line 366 (`nextSideId = getTileMaximumSideId tileToPlace`); updateSideIds itself is src/Types/Tile.elm:62-81",
+      "fix_instruction": "Replace or supplement `src/Helpers/GameLogic.elm:102-131` in term 4's Code Reference with `src/Helpers/GameLogic.elm:329` (and optionally `src/Types/Tile.elm:62-81`) so the allocation sub-claim is cited to the allocating code."
+    },
+    {
+      "id": "SEM-1",
+      "severity": "minor",
+      "category": "semantic",
+      "location": "Section 2 glossary, term 2 (Tileset), line 28",
+      "claim": "71 tiles in the draw stack plus the single starting tile (Tile 0, city center with road)",
+      "problem": "The design descriptor 'city center' is not faithful to the K-2-kept seed data: tile 0's design is a city on the north side with roads on the east and west sides and a field on the south side, not a city center.",
+      "evidence": "src/Helpers/TileMapper.elm:12-20: tile 0 = { north = { sideId = 0, City }, east = { sideId = 1, Road }, south = { sideId = -1, Field }, west = { sideId = 1, Road }, cloister = Nothing }",
+      "fix_instruction": "Reword the descriptor to match the code, e.g. 'the single starting tile (Tile 0 \u2014 city on the north side with roads on the east/west sides \u2014 placed at (0,0))', keeping the K-2 facts (tile 0, (0,0), 71+1) intact."
+    },
+    {
+      "id": "C-3",
+      "severity": "minor",
+      "category": "citation",
+      "location": "Section 6, rule RL14, line 302",
+      "claim": "A lobby holds at most 5 uniquely named players (names non-empty) | ... | ENFORCED (code) | kept (K-3)",
+      "problem": "The cited lines cover the 5-player cap and duplicate-name rejection only; the 'names non-empty' half of the rule has no cited enforcement point, and in the legacy code non-emptiness is enforced client-side only (a fact the source artifact cited but this document dropped).",
+      "evidence": "Cited src/Types/Game.elm:43-45 (playerLimit = 5), src/Backend.elm:95-102 (duplicate rejection), src/Backend.elm:110-118 (LobbyIsFull) contain no empty-name check; the legacy empty-name rejection is client-side at src/Frontend.elm:50-57 (`if String.isEmpty trimmedPlayerName then ... error = Just \"Name cannot be empty.\"`), as cited by source artifact DomainModel.md RL14",
+      "fix_instruction": "Add the non-emptiness enforcement point to RL14's 'Enforced by' cell, e.g. 'non-empty names rejected by the registration view (`src/Frontend.elm:50-57`; kept in the React registration view per M-1)', so the 'names non-empty' sub-claim has a supporting citation."
+    },
+    {
+      "id": "SEM-2",
+      "severity": "minor",
+      "category": "semantic",
+      "location": "Section 9 (Cross-Cutting Invariant Notes), line 345; and Modernization Decisions table, M-2 row, line 354",
+      "claim": "replaced by an in-process Fisher\u2013Yates shuffle on the Node server (M-2, replaced by M-2)",
+      "problem": "Garbled duplicated phrasing: the decision is stated twice in one parenthetical ('M-2, replaced by M-2'; and in the M-2 table row 'replaces the platform Random.generate re-entries, replaced by M-2'), which is confusing even though the content is correct.",
+      "evidence": "Line 345: '(M-2, replaced by M-2)'; line 354: '(replaces the platform `Random.generate` re-entries, replaced by M-2)'",
+      "fix_instruction": "Collapse each duplicated clause to a single reference: line 345 \u2192 '(replaced by M-2)' or '(M-2)'; line 354 \u2192 '(replaces the platform `Random.generate` re-entries)' keeping the single 'replaced by M-2' marker used by the other rows."
+    }
+  ],
+  "truncated": false,
+  "adjudication": [],
+  "summary": "Artifact is structurally complete, plan-faithful, and citation-accurate (all 160 distinct citations verified against the pinned repo and source artifact; domain rules match GameLogic.elm). Only 5 minor defects: 3 citation-precision gaps, 1 unfaithful seed-data descriptor, 1 duplicated phrasing."
+}

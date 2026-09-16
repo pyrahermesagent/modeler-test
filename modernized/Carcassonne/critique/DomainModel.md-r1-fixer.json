@@ -1,0 +1,36 @@
+{
+  "doc": "DomainModel.md",
+  "round": 1,
+  "fixer_agent": "agent-17",
+  "verdicts": [
+    {
+      "id": "C-1",
+      "verdict": "fixed",
+      "detail": "Line 51: single `src/Types.elm:11-33` split into `src/Types.elm:11-17` (SideId: type 11-12, values 13-17) and `src/Types.elm:20-33` (Point: alias 20, fields 21-24, constructor 29-33). No other legacy citations changed."
+    },
+    {
+      "id": "C-2",
+      "verdict": "fixed",
+      "detail": "Glossary SideId entry supplemented with `src/GameLogic.elm:329` and `src/GameLogic.elm:366` (SideId used as map key: sideOccupations parameter and the occupied check) plus `src/GameLogic/Tile.elm:62-81` (the SideId-keyed record behind sideOccupations). Original `src/Types.elm:102-131` retained."
+    },
+    {
+      "id": "SEM-1",
+      "verdict": "fixed",
+      "detail": "Tile 0 description reworded to 'a city on the north side, roads on the east and west sides, and a field on the south side (at (0,0))' per `src/Backend/TileMapper.elm:12-20` (city=North :14, Road=East :16, Road=West :17, open field south). K-2 facts (road+road+city+field) preserved."
+    },
+    {
+      "id": "C-3",
+      "verdict": "fixed",
+      "detail": "RL14 Enforced-by now includes `src/Frontend.elm:50-57` (the actual legacy enforcement site) in addition to the existing `src/Backend.elm:283-285` and `src/Backend/TileMapper.elm:10-100`; the K-1 / Section 7.1 note that enforcement survives in a React view per M-1 is unchanged."
+    },
+    {
+      "id": "SEM-2",
+      "verdict": "fixed",
+      "detail": "Lines 345 and 354: '(M-2, replaced by M-2)' collapsed to a single '(M-2, replaced)'. The M-2/M-3 pair explanation is retained in the I-4 resolution and the Section 9 note."
+    }
+  ],
+  "citations_added": 5,
+  "citations_removed": 0,
+  "unresolvable": [],
+  "notes": "All 36 legacy citations re-checked; none other changed. No UNVERIFIED outside Section 8; no plan-reference changes."
+}

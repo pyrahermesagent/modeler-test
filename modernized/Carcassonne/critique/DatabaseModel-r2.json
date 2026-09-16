@@ -1,0 +1,41 @@
+{
+  "artifact": "DatabaseModel.md",
+  "round": 2,
+  "summary": "4 defect(s)",
+  "defects": [
+    {
+      "id": "NM-1",
+      "severity": "major",
+      "type": "completeness",
+      "line": 157,
+      "description": "ERD mermaid (lines 54-153) declares R1-R19, but the Element map table (lines 157-184) has no rows for R4 (137), R8 (141), R9 (142), R10 (143), R11 (144), R12 (145), R15 (148), R17 (150), R18 (151) - 9 of 19 relations undocumented in the node map.",
+      "fix": "Add the missing rows, e.g.: R4 | `FrontendModel ||--o{ PlayerName` | `src/Types.elm:25-28` | kept ; R8 | `Game ||--o{ PlayerName` | `src/Types/Game.elm:31` | kept ; R9 | `Game ||--|| Tile` | `src/Types/Game.elm:33` | kept ; R10 | `Game ||--|| GameState` | `src/Types/Game.elm:34` | kept ; R11 | `Game ||--|| Coordinate` | `src/Types/Game.elm:35` | kept ; R12 | `Game ||--|| PlayerIndex` | `src/Types/Game.elm:32` | kept ; R15 | `Side ||--|| Feature` | `src/Types/Tile.elm:16-17` | kept (K-7) ; R17 | `Meeple ||--|| MeeplePosition` | `src/Types/Meeple.elm:20` | kept ; R18 | `Meeple ||--|| Coordinate` | `src/Types/Meeple.elm:19` | kept"
+    },
+    {
+      "id": "C-1",
+      "severity": "major",
+      "type": "citation",
+      "line": 257,
+      "description": "Lines 257, 374, 393 cite `src/Helpers/GameLogic.elm:401-413` as meeple REMOVAL, but that span is insertMeepleAt/insertMeepleAtFeature (insertion-only); removal lives at :440-442 (removeMeepleForFeature per-feature) and :554 (end-of-game Dict.empty).",
+      "fix": "Re-anchor removal claims to `src/Helpers/GameLogic.elm:440-442` and/or `:554`; keep 401-413 only for insertion."
+    },
+    {
+      "id": "SM-1",
+      "severity": "minor",
+      "type": "semantics",
+      "line": 54,
+      "description": "erDiagram uses Elm attribute types (Int/String/Bool) under a TS-first target; TS erDiagram idiom is number/string/boolean.",
+      "fix": "Change attribute types inside the mermaid block to TS primitives; keep PascalCase named types (PlayerName, PlayerIndex, ...) unchanged. Do not touch the \u00a75 tables."
+    },
+    {
+      "id": "SM-2",
+      "severity": "minor",
+      "type": "completeness",
+      "line": 477,
+      "description": "K-4 row 'Applied to' cell lists '\u00a73 (lobby key)' but \u00a73 carries no K-4 marker.",
+      "fix": "Remove the \u00a73 entry from K-4's Applied-to cell (the \u00a77 entry already covers the lobby-key scope)."
+    }
+  ],
+  "notes": "r1 field-count fix upheld (Game record at src/Types/Game.elm:29-39 really has 11 fields). 2 new majors: NM-1 (9 ERD relations missing from Element map), C-1 (meeple removal mis-anchored to insertion span 401-413). 2 minors: SM-1 (Elm types in ERD), SM-2 (K-4 phantom \u00a73 marker).",
+  "status": "defects_found"
+}

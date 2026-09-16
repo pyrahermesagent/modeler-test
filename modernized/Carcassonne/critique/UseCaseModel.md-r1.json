@@ -1,0 +1,32 @@
+{
+  "artifact": "modernized/Carcassonne/UseCaseModel.md",
+  "round": 1,
+  "citations_total": 348,
+  "citations_sampled": 211,
+  "references_total": 520,
+  "defects": [
+    {
+      "id": "H-1",
+      "severity": "minor",
+      "category": "honesty",
+      "location": "Resolved Assumptions & Issues table, I-1 row (line 632)",
+      "claim": "\"Client-trusted rules \u2014 a tampered client could place invalid tiles or meeples (no server-side turn/validity enforcement)\" (`Specification.md:111`)",
+      "problem": "The section header (line 619) claims 'the quoted markers are the source text as it stood', but the I-1 marker is the plan's paraphrase: Specification.md:111 actually says 'a tampered client could place invalid moves or play out of turn', not 'invalid tiles or meeples'.",
+      "evidence": "Specification.md:111: 'Security: Client-trusted rules \u2014 placeTile/placeMeeple explicitly \"do not check whether the move is valid\" and the backend re-applies them without re-checking turn ownership (...), so a tampered client could place invalid moves or play out of turn.'",
+      "fix_instruction": "Replace the I-1 Original marker text with a verbatim fragment of Specification.md:111, e.g. \"Client-trusted rules \u2014 ... so a tampered client could place invalid moves or play out of turn\", keeping the existing (Specification.md:111) anchor, status 'resolved', and the Resolution cell unchanged."
+    },
+    {
+      "id": "H-2",
+      "severity": "minor",
+      "category": "honesty",
+      "location": "Resolved Assumptions & Issues table, A-38/A-39/A-40/A-42/A-44 rows (lines 625, 626, 627, 629, 631)",
+      "claim": "A-42: \"Debug-mode claim: readme.md:129 claims placement is blocked while debug mode is on; the code does not block\" (UseCaseModel.md:503)",
+      "problem": "These markers are lightly compressed versions of the plan's quotes rather than verbatim fragments of the cited source lines (e.g. A-42 source reads 'claims tiles/meeples cannot be placed' not 'claims placement is blocked'; A-38 drops the source's '(readme.md:50)' and 'meeples per player with no separate score-track meeple' clause), again in tension with the header's 'source text as it stood' claim; line anchors and statuses are all correct, so this is cosmetic.",
+      "evidence": "Source UseCaseModel.md:503: 'Debug-mode claim: readme.md:129 claims tiles/meeples cannot be placed while debug mode is on; the code does not block placement \u2014 the debug overlay is pointer-events:none...'; line 498: '...The readme says \"6 meeples + 1 on the score track\" (readme.md:50) while the code initializes 7 meeples per player with no separate score-track meeple...'",
+      "fix_instruction": "For rows A-38, A-39, A-40, A-42, A-44, re-quote the Original marker from the cited source line verbatim, using '...' elisions only where text is genuinely omitted; do not change statuses, anchors, or Resolution cells."
+    }
+  ],
+  "truncated": false,
+  "adjudication": [],
+  "summary": "Artifact passes: template complete, all scoped decisions/assumptions/issues closed at plan terminal statuses, 211/211 distinct citations content-verified against the pinned repo and source artifact, directive stack presented exactly per plan; only 2 minor marker-quote fidelity nits in the Resolved section."
+}

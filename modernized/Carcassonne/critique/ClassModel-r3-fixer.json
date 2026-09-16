@@ -1,0 +1,21 @@
+{
+  "artifact": "modernized/Carcassonne/ClassModel.md",
+  "round": 3,
+  "verdicts": [
+    {
+      "id": "C-1",
+      "verdict": "fixed",
+      "category": "none",
+      "detail": "Replaced src/Backend.elm:174-183 with separate src/Backend.elm:147 + src/Backend.elm:177 in CL-27 narrative (line 414) and shuffleDrawStack cell (line 426); src/Types.elm:63-64 kept."
+    },
+    {
+      "id": "C-2",
+      "verdict": "fixed",
+      "category": "none",
+      "detail": "Widened lobby-management citation at line 414 from src/Backend.elm:110-123 to src/Backend.elm:93-138 (covers Register 93-118, late-register 120-123, KickPlayer 125-133, KillLobby 135-138); line-430 sub-range notes remain consistent."
+    }
+  ],
+  "citations_changed": 5,
+  "unresolvable": [],
+  "notes_for_orchestrator": "Both r2 minors fixed; no stale ranges remain and no scope-floor references were touched."
+}

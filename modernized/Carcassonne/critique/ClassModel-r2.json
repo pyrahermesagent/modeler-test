@@ -1,0 +1,25 @@
+{
+  "artifact": "ClassModel.md",
+  "round": 2,
+  "summary": "2 defect(s)",
+  "defects": [
+    {
+      "id": "C-1",
+      "severity": "minor",
+      "type": "citation",
+      "line": 414,
+      "description": "CL-27 narrative (line 414) and shuffleDrawStack legacy cell (line 426) cite `src/Backend.elm:174-183` for the two Random.generate re-entries, but the re-entries are at :147 and :177; the range covers neither start.",
+      "fix": "Replace the range with two separate backticked citations `src/Backend.elm:147` and `src/Backend.elm:177` (keep `src/Types.elm:63-64`)"
+    },
+    {
+      "id": "C-2",
+      "severity": "minor",
+      "type": "citation",
+      "line": 414,
+      "description": "Lobby-management claim on line 414 cites `src/Backend.elm:110-123`, but that range omits the KickPlayer (125-133) and KillLobby (135-138) handlers.",
+      "fix": "Widen to `src/Backend.elm:93-138` or cite the sub-ranges separately."
+    }
+  ],
+  "notes": "All 8 r1 fixes upheld. 2 new minors: C-1 (line 414/426 shuffleDrawStack range 174-183 does not cover the re-entries at :147 and :177), C-2 (line 414 lobby range 110-123 omits KickPlayer 125-133 and KillLobby 135-138).",
+  "status": "defects_found"
+}

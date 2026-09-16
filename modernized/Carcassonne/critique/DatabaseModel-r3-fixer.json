@@ -1,0 +1,33 @@
+{
+  "artifact": "modernized/Carcassonne/DatabaseModel.md",
+  "round": 3,
+  "verdicts": [
+    {
+      "id": "NM-1",
+      "verdict": "fixed",
+      "category": "none",
+      "detail": "Added 9 missing element-map rows (R4, R8, R9, R10, R11, R12, R15, R17, R18) with legacy citations verified against the pinned repo (Types.elm:25-28, Game.elm:31-35, Tile.elm:16-17, Meeple.elm:19-20)."
+    },
+    {
+      "id": "C-1",
+      "verdict": "fixed",
+      "category": "none",
+      "detail": "Re-anchored 3 removal claims from :401-413 (insertion) to :440-442 (per-feature Dict.remove) and :554 (finishGame Dict.empty); insertion-only claims still cite :401-413."
+    },
+    {
+      "id": "SM-1",
+      "verdict": "fixed",
+      "category": "none",
+      "detail": "Converted all 13 Elm primitive types (String->string, Int->number, Bool->boolean) inside the mermaid erDiagram block; PascalCase named types and section-5 tables untouched."
+    },
+    {
+      "id": "SM-2",
+      "verdict": "fixed",
+      "category": "none",
+      "detail": "Removed phantom 'section 3 (lobby key)' from K-4's Applied-to cell; the section-7 (PlayerName lobby key) entry already covers the lobby-key scope and is retained."
+    }
+  ],
+  "citations_changed": 5,
+  "unresolvable": [],
+  "notes_for_orchestrator": "All 4 defects resolved. Element map now has 19 rows matching the 19 mermaid relations; removal citations now point at real Dict.remove/Dict.empty lines."
+}

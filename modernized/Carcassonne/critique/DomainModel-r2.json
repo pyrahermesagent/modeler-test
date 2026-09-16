@@ -1,0 +1,17 @@
+{
+  "artifact": "DomainModel.md",
+  "round": 2,
+  "summary": "1 defect(s)",
+  "defects": [
+    {
+      "id": "SEM-1",
+      "severity": "minor",
+      "type": "semantics",
+      "line": 355,
+      "description": "M-4 decision row still carries the self-referential doubling '(replaces the client-trusted / UI-only enforcement posture, replaced by M-4)' - M-4 referencing itself.",
+      "fix": "Keep only one construction (e.g. 'replaces the client-trusted / UI-only enforcement posture')."
+    }
+  ],
+  "notes": "All 5 r1 fixes upheld (5/5). 1 new minor: SEM-1 M-4 row self-reference. 61/61 citations and 11/11 node-map entries verified.",
+  "status": "defects_found"
+}

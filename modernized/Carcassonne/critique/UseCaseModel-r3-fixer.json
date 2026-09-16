@@ -1,0 +1,15 @@
+{
+  "artifact": "modernized/Carcassonne/UseCaseModel.md",
+  "round": 3,
+  "verdicts": [
+    {
+      "id": "SEM-1",
+      "verdict": "fixed",
+      "category": "none",
+      "detail": "Verified 8 ToFrontend constructors at src/Types.elm:67-86 (and 8 ToBackend at 50-58). Rewrote all 4 count sites (line 58, line 68, M-3 row 603, K-6 row 610) to '8 legacy server->client (10 including the two M-5 additions)' and added one-line plan-note at M-3/K-6 rows that the plan's '9' is a plan-level count error superseded by the code-verified 8 (cited src/Types.elm:67-86). Per-message rows untouched."
+    }
+  ],
+  "citations_changed": 0,
+  "unresolvable": [],
+  "notes_for_orchestrator": "The count error still lives in the read-only plan (M-3 line 82, K-6 line 181, where K-6 enumerates 8 names but says '9'); the document now flags it explicitly in the M-3/K-6 ledger rows."
+}

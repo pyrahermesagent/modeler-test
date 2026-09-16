@@ -1,0 +1,240 @@
+{
+ "mod_dir": "modernized/Carcassonne",
+ "src_dir": "output/Carcassonne",
+ "repo_dir": "output/Carcassonne/.repo",
+ "generated_at": "2026-09-16T11:51:52+00:00",
+ "plan": {
+  "ok": true,
+  "defects": [],
+  "warnings": []
+ },
+ "docs": {
+  "Specification.md": {
+   "exists": true,
+   "header": false,
+   "honesty_sections": true,
+   "citations": {
+    "total": 278,
+    "resolved_repo": 254,
+    "resolved_src": 24,
+    "skipped": 0,
+    "failed": []
+   },
+   "references": {
+    "total": 398,
+    "failed": []
+   },
+   "unverified_leftovers": [],
+   "sections_missing": [],
+   "mermaid": {
+    "blocks": 1,
+    "types": [
+     "flowchart"
+    ],
+    "required_present": true,
+    "fences_balanced": true
+   },
+   "node_maps": {
+    "missing_maps": [],
+    "missing_ids": {}
+   },
+   "density_warnings": [
+    "\u00a7 11. Cross-References to Sibling Models (no citations/references)"
+   ],
+   "major_defects": [],
+   "minor_warnings": [],
+   "status": "PASS"
+  },
+  "ClassModel.md": {
+   "exists": true,
+   "header": false,
+   "honesty_sections": true,
+   "citations": {
+    "total": 575,
+    "resolved_repo": 490,
+    "resolved_src": 85,
+    "skipped": 0,
+    "failed": []
+   },
+   "references": {
+    "total": 534,
+    "failed": []
+   },
+   "unverified_leftovers": [],
+   "sections_missing": [],
+   "mermaid": {
+    "blocks": 2,
+    "types": [
+     "classDiagram",
+     "classDiagram"
+    ],
+    "required_present": true,
+    "fences_balanced": true
+   },
+   "node_maps": {
+    "missing_maps": [],
+    "missing_ids": {
+     "line 687": [
+      "o"
+     ]
+    }
+   },
+   "density_warnings": [],
+   "major_defects": [],
+   "minor_warnings": [
+    "node map at line 687 missing ids: o"
+   ],
+   "status": "PASS"
+  },
+  "DatabaseModel.md": {
+   "exists": true,
+   "header": false,
+   "honesty_sections": true,
+   "citations": {
+    "total": 370,
+    "resolved_repo": 308,
+    "resolved_src": 62,
+    "skipped": 0,
+    "failed": []
+   },
+   "references": {
+    "total": 241,
+    "failed": []
+   },
+   "unverified_leftovers": [],
+   "sections_missing": [],
+   "mermaid": {
+    "blocks": 1,
+    "types": [
+     "erDiagram"
+    ],
+    "required_present": true,
+    "fences_balanced": true
+   },
+   "node_maps": {
+    "missing_maps": [],
+    "missing_ids": {}
+   },
+   "density_warnings": [],
+   "major_defects": [],
+   "minor_warnings": [],
+   "status": "PASS"
+  },
+  "DomainModel.md": {
+   "exists": true,
+   "header": false,
+   "honesty_sections": true,
+   "citations": {
+    "total": 305,
+    "resolved_repo": 291,
+    "resolved_src": 14,
+    "skipped": 0,
+    "failed": []
+   },
+   "references": {
+    "total": 320,
+    "failed": []
+   },
+   "unverified_leftovers": [],
+   "sections_missing": [],
+   "mermaid": {
+    "blocks": 1,
+    "types": [
+     "classDiagram"
+    ],
+    "required_present": true,
+    "fences_balanced": true
+   },
+   "node_maps": {
+    "missing_maps": [],
+    "missing_ids": {
+     "line 157": [
+      "o"
+     ]
+    }
+   },
+   "density_warnings": [],
+   "major_defects": [],
+   "minor_warnings": [
+    "node map at line 157 missing ids: o"
+   ],
+   "status": "PASS"
+  },
+  "UseCaseModel.md": {
+   "exists": true,
+   "header": false,
+   "honesty_sections": true,
+   "citations": {
+    "total": 348,
+    "resolved_repo": 328,
+    "resolved_src": 20,
+    "skipped": 0,
+    "failed": []
+   },
+   "references": {
+    "total": 526,
+    "failed": []
+   },
+   "unverified_leftovers": [],
+   "sections_missing": [],
+   "mermaid": {
+    "blocks": 1,
+    "types": [
+     "flowchart"
+    ],
+    "required_present": true,
+    "fences_balanced": true
+   },
+   "node_maps": {
+    "missing_maps": [],
+    "missing_ids": {}
+   },
+   "density_warnings": [],
+   "major_defects": [],
+   "minor_warnings": [],
+   "status": "PASS"
+  },
+  "ActivityDiagram.md": {
+   "exists": true,
+   "header": false,
+   "honesty_sections": true,
+   "citations": {
+    "total": 382,
+    "resolved_repo": 361,
+    "resolved_src": 21,
+    "skipped": 0,
+    "failed": []
+   },
+   "references": {
+    "total": 372,
+    "failed": []
+   },
+   "unverified_leftovers": [],
+   "sections_missing": [],
+   "mermaid": {
+    "blocks": 5,
+    "types": [
+     "flowchart",
+     "flowchart",
+     "flowchart",
+     "flowchart",
+     "flowchart"
+    ],
+    "required_present": true,
+    "fences_balanced": true
+   },
+   "node_maps": {
+    "missing_maps": [],
+    "missing_ids": {}
+   },
+   "density_warnings": [],
+   "major_defects": [],
+   "minor_warnings": [],
+   "status": "PASS"
+  }
+ },
+ "overall": {
+  "pass": true,
+  "status": "PASS"
+ }
+}

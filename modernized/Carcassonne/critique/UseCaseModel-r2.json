@@ -1,0 +1,17 @@
+{
+  "artifact": "UseCaseModel.md",
+  "round": 2,
+  "summary": "1 defect(s)",
+  "defects": [
+    {
+      "id": "SEM-1",
+      "severity": "minor",
+      "type": "semantics",
+      "line": 58,
+      "description": "Narrative claims '9 server->client messages' (line 58, lines 66-67, line 603 M-3 row, line 610 K-6 row) but the code defines exactly 8 ToFrontend constructors (src/Types.elm:67-86). The plan's M-3/K-6 '9' is a plan-level count error; K-6's own enumeration lists 8.",
+      "fix": "Change to '8 legacy server->client messages (10 including the two M-5 additions)' and add a one-line note that the plan's M-3/K-6 '9' is a plan-level count error. Do not touch the per-message rows (they correctly enumerate all 8)."
+    }
+  ],
+  "notes": "Both r1 fixes stand down (verified clean). 1 new minor: SEM-1 '9 vs 8' server->client message count.",
+  "status": "defects_found"
+}

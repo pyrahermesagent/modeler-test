@@ -1,0 +1,608 @@
+{
+  "repo_name": "Carcassonne",
+  "source": {
+    "dir": "output/Carcassonne",
+    "repo_sha": "ca2797745a863243fa6ce96af63435b0d67bf2ab",
+    "inputs_available": { "repo": true, "plan": true, "inventory": true, "evidence": true, "verification": true }
+  },
+  "directives": {
+    "raw": "rewrite it into the most modern javascript/typescript framework!",
+    "items": [
+      {
+        "id": "D-1",
+        "kind": "change",
+        "text": "rewrite it into the most modern javascript/typescript framework!",
+        "disposition": "decision",
+        "refs": ["M-1", "M-2", "M-3", "M-8"],
+        "reason": "The whole Elm/Lamdera full-stack app is rewritten: primary language becomes TypeScript (the directive says 'javascript/typescript' and TypeScript-first is the modern choice), and the functional surface (game rules, message semantics, three-view UX) is preserved as kept elements K-1..K-7."
+      },
+      {
+        "id": "D-2",
+        "kind": "change",
+        "text": "the most modern javascript/typescript framework",
+        "disposition": "decision",
+        "refs": ["M-1", "M-2"],
+        "reason": "Ambiguous — no framework named. Most conservative modern interpretation (as of 2026): React 19 (react 19.x / react-dom 19.x) + Vite 7 for the browser client, Node.js 24 LTS for the server; only packages with stable, well-known major versions are used (check_latest flags on M-1/M-3/M-6 where currency is less certain)."
+      }
+    ]
+  },
+  "stack": {
+    "frontend": {
+      "current": "Elm 0.19.1 browser app (elm/browser 1.0.2 + elm/html 1.0.0 virtual DOM) hosted by the Lamdera frontend runtime; three Elm views (PlayerRegistrationView, PlayerLobbyView, GameView) + hand-written Styles.elm CSS module",
+      "current_citations": ["`elm.json:4-13`", "`src/Frontend.elm:17-31`", "`src/Styles.elm:1`", "`Specification.md:78`"],
+      "target": "TypeScript 5.x + React 19 (react 19.x, react-dom 19.x) single-page app built with Vite 7 (M-1); plain CSS modules replace Styles.elm; client state via reducer over server-pushed state",
+      "citations": ["`elm.json:4-13`", "`src/Views/GameView.elm:1`", "`Specification.md:78`"]
+    },
+    "backend": {
+      "current": "Elm 0.19.1 server-side app on the Lamdera backend runtime (lamdera/core 1.0.0 + lamdera/codecs 1.0.0); one shared in-memory game model broadcast to all clients; Debug.log on the connection hot path",
+      "current_citations": ["`elm.json:17-18`", "`src/Backend.elm:18-25`", "`src/Backend.elm:40-42`", "`Specification.md:79`"],
+      "target": "Node.js 24 LTS + TypeScript + ws 8.x WebSocket server owning one authoritative in-memory state (lobby | game) (M-2); zod-validated typed JSON protocol (M-3); server-side move/turn revalidation (M-4); structured logging, no Debug.log",
+      "citations": ["`elm.json:17-18`", "`src/Backend.elm:14-15`"]
+    },
+    "database": {
+      "current": "None — no DBMS/ORM; state lives only in the in-memory backend Model, versioned by compiler-generated Evergreen snapshots V1→V10 (platform-managed, concrete medium UNVERIFIED)",
+      "current_citations": ["`src/Backend.elm:14-15`", "`src/Evergreen/Migrate/V10.elm:3-18`", "`DatabaseModel.md:16-20`"],
+      "target": "None (no DBMS) — a single typed in-memory state shape in TypeScript; the Evergreen snapshot/migration layer is dropped; explicit restart=new-lobby semantics (M-8)",
+      "citations": ["`src/Types/Game.elm:28-40`", "`DatabaseModel.md:639-644`"]
+    },
+    "infrastructure": {
+      "current": "Lamdera platform hosting with git-remote auto-deploy; GitHub Actions CI: elm-review lint + lamdera make compile of both entry points + npx elm-test",
+      "current_citations": ["`readme.md:139-151`", "`.github/workflows/test.yaml:33-46`", "`Specification.md:82`"],
+      "target": "Docker multi-stage image (Vite static build + Node 24 server) (M-7); GitHub Actions CI with ESLint 9.x, tsc --noEmit, Vitest 3.x and optional Playwright 1.x (M-6); hosting-provider choice left open",
+      "citations": ["`.github/workflows/test.yaml:33-46`", "`readme.md:139-151`"]
+    }
+  },
+  "decisions": [
+    {
+      "id": "M-1",
+      "area": "tech_stack",
+      "summary": "Rewrite the Elm browser frontend (elm/browser + elm/html on the Lamdera frontend runtime) as a TypeScript SPA: React 19 (react 19.x / react-dom 19.x), Vite 7 build tool, TypeScript 5.x, one React component per legacy view, client state in a useReducer fed by typed WebSocket updates, plain CSS modules replacing Styles.elm.",
+      "from": "Elm 0.19.1 browser application (elm/browser 1.0.2 + elm/html 1.0.0) on the Lamdera frontend runtime; three Elm view modules and a hand-written Elm CSS module (Styles.elm)",
+      "from_citations": ["`elm.json:4-13`", "`src/Frontend.elm:17-31`", "`src/Views/GameView.elm:1`", "`src/Styles.elm:1`", "`Specification.md:78`"],
+      "to": "TypeScript 5.x + React 19 (react 19.x, react-dom 19.x) single-page app built with Vite 7; React components RegistrationView, LobbyView, GameBoard mirroring the three Elm views (K-5); reducer-based client state mirroring the Lamdera full-state pushes (K-4); CSS modules for the existing styling",
+      "why": "The directive demands the most modern JS/TS stack; React 19 + Vite is the dominant mainstream 2026 combination; a pure-logic board game needs no heavy state library — a reducer over server-pushed whole state mirrors the Elm architecture 1:1 and keeps K-4",
+      "directive_refs": ["D-1", "D-2"],
+      "artifacts": ["Specification.md", "ClassModel.md", "DomainModel.md", "UseCaseModel.md", "ActivityDiagram.md"],
+      "check_latest": true
+    },
+    {
+      "id": "M-2",
+      "area": "tech_stack",
+      "summary": "Rewrite the Elm/Lamdera backend as a Node.js 24 LTS + TypeScript WebSocket server (ws 8.x) that owns the single authoritative in-memory state (lobby list | Game); shuffling becomes an in-process operation; structured console logging replaces the Debug.log on the client-connection hot path.",
+      "from": "Elm 0.19.1 server-side app on the Lamdera backend runtime (lamdera/core 1.0.0 + lamdera/codecs 1.0.0); Debug.log runs on client connections in production code; shuffling runs through platform-executed Random commands (two async re-entries)",
+      "from_citations": ["`elm.json:17-18`", "`src/Backend.elm:18-25`", "`src/Backend.elm:40-42`", "`src/Backend.elm:147`", "`src/Backend.elm:177`", "`Specification.md:79`"],
+      "to": "Node.js 24 LTS + TypeScript process with ws 8.x; one in-process authoritative state (lobby phase | game phase, K-4); Fisher–Yates shuffle in-process (replaces the two Random.generate re-entries); structured logging only — no Debug.log (closes I-3)",
+      "why": "Replaces the platform-bound Elm backend with a self-hosted Node server that keeps the one-game-at-a-time shared-state design (K-4); removes the production Debug.log (I-3) and the opaque platform Random re-entry (A-4)",
+      "directive_refs": ["D-1", "D-2"],
+      "artifacts": ["Specification.md", "ClassModel.md", "DomainModel.md", "UseCaseModel.md", "ActivityDiagram.md"]
+    },
+    {
+      "id": "M-3",
+      "area": "architecture",
+      "summary": "Replace the Lamdera ToBackend/ToFrontend ADT transport with a typed WebSocket JSON protocol: TypeScript discriminated unions for the 8 client→server and 9 server→client messages, runtime validation with zod on the server, and an explicit full-state broadcast to every connected client including the acting one; a typed WebSocket client class in the frontend.",
+      "from": "Lamdera message protocol: ToBackend (8 constructors) and ToFrontend (9 constructors) over sendToBackend/broadcast/sendToFrontend; fire-and-forget transport with no error payloads",
+      "from_citations": ["`src/Types.elm:50-58`", "`src/Types.elm:67-86`", "`src/Backend.elm:6`", "`Specification.md:126-151`"],
+      "to": "WebSocket JSON messages as discriminated unions with zod 3.x+ schemas checked server-side before dispatch; message semantics preserved 1:1 (K-6, including JoinedGame reconnect and TerminateGame); broadcast = send to all connected clients including the actor (closes A-13); frontend exposes a typed WS client class (closes A-15)",
+      "why": "Faithful modern mapping of the Lamdera message surface; zod runtime checks restore, at the trust boundary, the compile-time type safety Elm provided inside one language",
+      "directive_refs": ["D-1", "D-2"],
+      "artifacts": ["Specification.md", "ClassModel.md", "UseCaseModel.md", "ActivityDiagram.md"],
+      "check_latest": true
+    },
+    {
+      "id": "M-4",
+      "area": "security",
+      "summary": "Add server-side revalidation: the backend validates tile/meeple placement legality and turn ownership (WebSocket session bound to the registered player) before applying any move, reusing the pure-domain validity checks ported from FrontendHelpers; the ported isRotatedCorrectly becomes a runtime invariant on the rotation path.",
+      "from": "Client-trusted rules: placeTile/placeMeeple document 'Does not check whether the move is valid'; backend handlers carry no sender or turn-ownership check; validity is enforced only by the UI-side helpers; isRotatedCorrectly is defined and unit-tested but never called from app code",
+      "from_citations": ["`src/Helpers/GameLogic.elm:311-314`", "`src/Helpers/GameLogic.elm:373-376`", "`src/Helpers/FrontendHelpers.elm:48-110`", "`src/Backend.elm:150-183`", "`src/Helpers/GameLogic.elm:45-95`", "`Specification.md:111`"],
+      "to": "Server rejects invalid/out-of-turn moves with structured errors (M-5); the ported tileCanBePlaced / getCoordinatesToBePlacedOn / getMeeplePositionsToBePlacedOn run server-side as the authoritative checks while the client keeps using them for UI hints; rotation invariant asserted in the domain core (closes A-31, A-43)",
+      "why": "Closes the systemic security gap flagged in four artifacts (I-1) without changing gameplay semantics (K-1); the UI-only enforcement statuses of RL1/RL10/RL11 become server-enforced in the modernized domain model",
+      "directive_refs": ["D-1"],
+      "artifacts": ["Specification.md", "ClassModel.md", "DatabaseModel.md", "DomainModel.md", "UseCaseModel.md", "ActivityDiagram.md"]
+    },
+    {
+      "id": "M-5",
+      "area": "error_handling",
+      "summary": "Add structured error/rejection payloads to the protocol: duplicate player name, lobby full, invalid move, out-of-turn; clients render explicit feedback (the registration view's existing error box finally gets real content; wrong-state messages get a rejection instead of silent drop).",
+      "from": "No error payloads in the protocol: a duplicate registration name is rejected silently (the client simply receives the unchanged player list) and messages arriving in the wrong backend state are dropped without reply",
+      "from_citations": ["`Specification.md:151`", "`src/Backend.elm:99-102`", "`src/Backend.elm:185-186`", "`UseCaseModel.md:499`"],
+      "to": "Protocol gains typed rejection messages (e.g. RegistrationRejected { reason }, InvalidMove { reason }); the React registration view displays the rejection in its error box (K-5); server logs and returns structured rejections for M-4 validation failures",
+      "why": "Closes the no-error-payload gap (I-2) that made rejections invisible to players; keeps the lobby/game rules unchanged (K-3/K-6) while making failures observable",
+      "directive_refs": ["D-1"],
+      "artifacts": ["Specification.md", "UseCaseModel.md", "ActivityDiagram.md"]
+    },
+    {
+      "id": "M-6",
+      "area": "testing",
+      "summary": "Replace the Elm toolchain quality gates with modern TS equivalents: Vitest 3.x unit tests on the domain core (ported pinned tests: isRotatedCorrectly, tileCanBePlaced, getCoordinatesToBePlacedOn, getFeatureOwners majority/tie) with an 80% line-coverage target on the domain core; ESLint 9.x replaces elm-review; tsc --noEmit replaces the lamdera make compile check; Playwright 1.x E2E smoke covers registration → lobby → turn loop.",
+      "from": "elm-test with elm-explorations/test 2.2.0 — two test files, 296 lines against ~3,524 lines of src; elm-review lint; CI compiles both entry points; no coverage targets, no integration tests, no E2E framework",
+      "from_citations": ["`elm.json:16`", "`tests/GameLogicTests.elm:1`", "`tests/MeepleTests.elm:1`", "`.github/workflows/test.yaml:36-46`", "`Specification.md:162-164`"],
+      "to": "Vitest 3.x (unit + server integration tests via a real ws client), ESLint 9.x flat config, tsc --noEmit, Playwright 1.x E2E; ported pinned tests plus new coverage of the rule surface (M-4 checks, M-5 rejections); 80% line coverage target on the domain core",
+      "why": "1:1 modern mapping of the existing CI gates (lint + compile + test, per .github/workflows/test.yaml:33-46); E2E verifies the broadcast-including-acting-client semantics (A-13) and the three-view flow (K-5)",
+      "directive_refs": ["D-1"],
+      "artifacts": ["Specification.md", "ClassModel.md"],
+      "check_latest": true
+    },
+    {
+      "id": "M-7",
+      "area": "deployment",
+      "summary": "Replace Lamdera platform hosting with a Docker multi-stage image (Vite static build + Node 24 server) and modernize the GitHub Actions workflow (ESLint 9, tsc --noEmit, Vitest 3, production build; optional Playwright); the hosting-provider choice is left open (no provider directive).",
+      "from": "Lamdera platform hosting with git-remote auto-deploy on `git push lamdera`; GitHub Actions pipeline running elm-review, lamdera make compile of both entry points, and npx elm-test --compiler lamdera",
+      "from_citations": ["`readme.md:139-151`", "`.github/workflows/test.yaml:33-46`", "`Specification.md:169-172`"],
+      "to": "Dockerfile with two stages (Vite build → Node 24 LTS server serving static assets + WebSocket); GitHub Actions workflow running the M-6 gates; no provider lock-in",
+      "why": "Self-hosted deployment removes the Lamdera platform dependency (hosting, transport, Evergreen storage) and keeps the existing CI shape (lint + compile + test) on the modern toolchain",
+      "directive_refs": ["D-1"],
+      "artifacts": ["Specification.md", "DatabaseModel.md"]
+    },
+    {
+      "id": "M-8",
+      "area": "data_model",
+      "summary": "Retire the compiler-generated Evergreen snapshot/migration layer: the modernized data layer is a single TypeScript state shape (discriminated union: lobby phase { players } | game phase { game }) defined once in the domain core; state is explicitly in-memory with no cross-restart persistence (restart = new lobby); no DBMS; the code-verified seed data (24 tile designs, 71-tile draw stack, starting tile) is ported unchanged (K-2).",
+      "from": "Compiler-generated Evergreen snapshots V1/V3/V5/V10 with ModelReset state-loss boundaries and post-V10 drift (NoOpBackendMsg/ClearError gone, no V11); platform-managed persistence medium UNVERIFIED; restart with no recoverable snapshot loses the game",
+      "from_citations": ["`src/Evergreen/Migrate/V10.elm:3`", "`src/Evergreen/Migrate/V10.elm:36-43`", "`src/Evergreen/V10/Types.elm:47`", "`src/Evergreen/V10/Types.elm:66`", "`src/Types/Game.elm:102-104`", "`src/Types/Game.elm:120-147`", "`DatabaseModel.md:639-644`"],
+      "to": "One typed state definition in TypeScript in the domain core; in-process memory only, no migration tool, no DBMS; restart semantics documented as 'new empty lobby'; seed constants (tileset ids 0–23, 71-entry draw stack, tile 0 at (0,0)) reused verbatim from the code-verified data",
+      "why": "The Evergreen files are frozen compiler-generated artifacts, not live code (plan.json risks); a single TS type is the modern equivalent and cannot drift from its definition (closes I-5/A-20); explicit in-memory persistence resolves every 'UNVERIFIED medium' marker without adding a datastore the directive does not ask for",
+      "directive_refs": ["D-1"],
+      "artifacts": ["Specification.md", "ClassModel.md", "DatabaseModel.md", "DomainModel.md", "ActivityDiagram.md"]
+    }
+  ],
+  "kept": [
+    {
+      "id": "K-1",
+      "element": "Carcassonne rule core, re-implemented as a pure TypeScript domain layer (no I/O): tile draw + placement legality, SideId feature merging on placement, meeple placement/return, majority-with-tie scoring, 2x city bonus only for completed cities above 2 tiles, cloister scoring (9 when complete; end-of-game adjacent-tile scoring), flat 7-meeples economy, turn machine (PlaceTile → PlaceMeeple → next player), game ends when no tile is placeable, unplaceable tiles skipped and dropped from the stack",
+      "citations": ["`src/Helpers/GameLogic.elm:1-556`", "`src/Helpers/FrontendHelpers.elm:27-143`", "`src/Types/Game.elm:28-40`", "`DomainModel.md:265-283`"],
+      "directive_ref": "planner"
+    },
+    {
+      "id": "K-2",
+      "element": "Tileset seed data: 24 hand-written tile designs (ids 0–23), the 71-tile draw stack, and the starting tile (tile 0 at (0,0)); the code-verified numbers 24/71/72 replace the planner's erroneous '74-tile' figure everywhere",
+      "citations": ["`src/Helpers/TileMapper.elm:9-253`", "`src/Types/Game.elm:102-104`", "`src/Types/Game.elm:120-147`", "`DatabaseModel.md:641`"],
+      "directive_ref": "planner"
+    },
+    {
+      "id": "K-3",
+      "element": "Player identity semantics: name-only identity (no login, session, or role system), unique non-empty names, 5-player lobby cap, kick/kill-lobby affordances, single PLAYER role with no host/admin",
+      "citations": ["`src/Backend.elm:93-138`", "`src/Types/PlayerName.elm:4-5`", "`src/Types/Game.elm:43-45`"],
+      "directive_ref": "planner"
+    },
+    {
+      "id": "K-4",
+      "element": "Single shared authoritative game state: one in-memory model (lobby phase or game phase), at most one concurrent game, full-state broadcast to every client; non-acting clients render the board read-only; reconnect = re-register with the same name (JoinedGame)",
+      "citations": ["`src/Backend.elm:14-15`", "`src/Types.elm:11-17`", "`src/Frontend.elm:143-150`", "`src/Backend.elm:120-123`"],
+      "directive_ref": "planner"
+    },
+    {
+      "id": "K-5",
+      "element": "Three-view UX flow and controls: registration (name input, error box, situational Kill-lobby for the full-lobby client), lobby (roster, per-player kick, Start), game board (placeable-cell overlay, rotate, meeple positions + Skip, terminate); the debug SideId overlay stays a non-interactive visual layer (pointer-events: none)",
+      "citations": ["`src/Views/PlayerRegistrationView.elm:16-37`", "`src/Views/PlayerLobbyView.elm:11-39`", "`src/Views/GameView.elm:58-90`", "`src/Views/GameView.elm:740-745`"],
+      "directive_ref": "planner"
+    },
+    {
+      "id": "K-6",
+      "element": "Message-surface semantics: the 8 client→server messages (RegisterPlayer, KickPlayer, KillLobby, InitializeGame, RotateTileLeft, PlaceTile, PlaceMeeple, TerminateGame) and 9 server→client messages (PlayerRegistrationUpdated, PlayerKicked, LobbyIsFull, LobbyKilled, GameInitialized, UpdateGameState, JoinedGame, GameTerminated) keep their payloads and state-gating; names may change with the TS protocol, semantics must not",
+      "citations": ["`src/Types.elm:50-58`", "`src/Types.elm:67-86`", "`src/Backend.elm:180-183`"],
+      "directive_ref": "planner"
+    },
+    {
+      "id": "K-7",
+      "element": "Implicit domain modeling: features are implicit via shared SideIds (no Feature aggregate object); game finish is delivered as a full-state UpdateGameState push (no dedicated event); Player is a name-keyed cluster of fields inside the Game record (no standalone Player type)",
+      "citations": ["`src/Helpers/GameLogic.elm:170-188`", "`src/Types.elm:80-82`", "`src/Types/Game.elm:29-32`", "`DomainModel.md:331`", "`DomainModel.md:337-338`"],
+      "directive_ref": "planner"
+    }
+  ],
+  "assumptions": [
+    {
+      "id": "A-1",
+      "source_doc": "Specification.md",
+      "quote": "Field play and field scoring — documented in readme.md:61 and readme.md:79 but not implemented (UNVERIFIED-in-code)",
+      "status": "accepted",
+      "reason": "Readme-only rule with no code counterpart; the rewrite preserves the enforced behavior (fields carry SideId -1 and score 0) per K-1; implementing readme-only rules would be inventing a requirement the directive does not ask for (see A-24/A-25)"
+    },
+    {
+      "id": "A-2",
+      "source_doc": "Specification.md",
+      "quote": "Turn timers / timeouts — none exist in code (UNVERIFIED at the Lamdera host layer)",
+      "status": "deferred",
+      "reason": "A turn timer would change gameplay and is not requested by the directive; the new Node server (M-2) makes the behavior explicit: no timer, a player may stall a turn (legacy behavior preserved; see A-34/A-37)"
+    },
+    {
+      "id": "A-3",
+      "source_doc": "Specification.md",
+      "quote": "Performance: No declared targets (UNVERIFIED — nothing in the repo states latency or throughput goals)",
+      "status": "accepted",
+      "reason": "No targets declared in the source and none demanded by the directive; single-game scale is unchanged (K-4), so there is nothing to target"
+    },
+    {
+      "id": "A-4",
+      "source_doc": "Specification.md",
+      "quote": "whether the Lamdera host layer offers any scaling or timeout guarantees is UNVERIFIED (outside the repo)",
+      "status": "resolved",
+      "resolution": "The Lamdera host layer is retired by M-2: scaling/timeout behavior becomes exactly what the code defines — a single process, one concurrent game (K-4) — so the platform opacity no longer exists",
+      "decision_refs": ["M-2"]
+    },
+    {
+      "id": "A-5",
+      "source_doc": "Specification.md",
+      "quote": "No uptime targets declared (UNVERIFIED)",
+      "status": "deferred",
+      "reason": "No SLO/uptime directive; out of scope for this rewrite"
+    },
+    {
+      "id": "A-6",
+      "source_doc": "Specification.md",
+      "quote": "the concrete storage medium is UNVERIFIED from this repo",
+      "status": "resolved",
+      "resolution": "M-8 defines persistence explicitly: in-process memory only, no platform store, restart = new lobby; the question is no longer open",
+      "decision_refs": ["M-8"]
+    },
+    {
+      "id": "A-7",
+      "source_doc": "Specification.md",
+      "quote": "No Figma/wireframe links exist in the repo (UNVERIFIED)",
+      "status": "accepted",
+      "reason": "No design assets exist in the repo and no design directive was given; the rewrite keeps the existing three-view UI (K-5) and ported styling"
+    },
+    {
+      "id": "A-8",
+      "source_doc": "Specification.md",
+      "quote": "Coverage targets are not declared (UNVERIFIED); coverage is thin relative to the rule surface",
+      "status": "resolved",
+      "resolution": "M-6 declares an 80% line-coverage target on the ported domain core and adds Vitest suites over the rule surface",
+      "decision_refs": ["M-6"]
+    },
+    {
+      "id": "A-9",
+      "source_doc": "Specification.md",
+      "quote": "no frontend-backend integration tests exist (UNVERIFIED)",
+      "status": "resolved",
+      "resolution": "M-6 adds server integration tests (Vitest driving a real ws client against the Node server)",
+      "decision_refs": ["M-6"]
+    },
+    {
+      "id": "A-10",
+      "source_doc": "Specification.md",
+      "quote": "End-to-End (E2E) Testing: None — no browser test framework is present (UNVERIFIED)",
+      "status": "resolved",
+      "resolution": "M-6 adds a Playwright 1.x E2E smoke covering registration → lobby → turn loop → finished board",
+      "decision_refs": ["M-6"]
+    },
+    {
+      "id": "A-11",
+      "source_doc": "Specification.md",
+      "quote": "Staging: not declared in the repo (UNVERIFIED)",
+      "status": "deferred",
+      "reason": "No environments directive; staging is out of scope for this rewrite (see A-23)"
+    },
+    {
+      "id": "A-12",
+      "source_doc": "Specification.md",
+      "quote": "No phase plan, roadmap, or release history is declared in the repo (UNVERIFIED)",
+      "status": "deferred",
+      "reason": "No roadmap directive; out of scope for this rewrite"
+    },
+    {
+      "id": "A-13",
+      "source_doc": "Specification.md",
+      "quote": "Whether broadcast reaches the acting client is inferred from Lamdera broadcast semantics; not verifiable from the repo alone",
+      "status": "resolved",
+      "resolution": "M-3 defines the semantics explicitly: the server sends every full-state update to all connected clients including the acting one; M-6's Playwright E2E verifies it",
+      "decision_refs": ["M-3", "M-6"]
+    },
+    {
+      "id": "A-14",
+      "source_doc": "ClassModel.md",
+      "quote": "UNVERIFIED — Data Access Objects / Repositories (template §2.B) are absent",
+      "status": "accepted",
+      "reason": "The modernized system is still database-less: the server owns the in-memory state directly (M-8, K-4), so there is no DAO/repository layer to model; the absence is an architectural fact, not a defect"
+    },
+    {
+      "id": "A-15",
+      "source_doc": "ClassModel.md",
+      "quote": "UNVERIFIED — API Clients / HTTP Services (template §4.B) are absent",
+      "status": "resolved",
+      "resolution": "M-3 introduces a typed WebSocket client class (WS transport + typed message codecs) in the frontend; the modernized ClassModel fills the API-clients section with it",
+      "decision_refs": ["M-3"]
+    },
+    {
+      "id": "A-16",
+      "source_doc": "ClassModel.md",
+      "quote": "UNVERIFIED — Interfaces / abstractions (template §6.3) are absent. Elm has no interfaces or subtyping",
+      "status": "resolved",
+      "resolution": "TypeScript provides interfaces (M-1): the modernized ClassModel models interface seams (domain-core operations, WS transport) where Elm had none",
+      "decision_refs": ["M-1"]
+    },
+    {
+      "id": "A-17",
+      "source_doc": "DatabaseModel.md",
+      "quote": "The concrete storage backend (Lamdera Cloud vs. local) is UNVERIFIED",
+      "status": "resolved",
+      "resolution": "M-8 removes the platform store: persistence is explicitly in-process memory, so there is no storage medium to configure or verify",
+      "decision_refs": ["M-8"]
+    },
+    {
+      "id": "A-18",
+      "source_doc": "DatabaseModel.md",
+      "quote": "No security/compliance mechanisms — no authentication beyond player-name uniqueness, no authorization rules, no audit log",
+      "status": "resolved",
+      "resolution": "M-4 closes the primary gap (server-side move/turn validation + session→player binding); no authentication is by design (K-3); encryption-at-rest is N/A because M-8 leaves no persistent store",
+      "decision_refs": ["M-4", "M-8"]
+    },
+    {
+      "id": "A-19",
+      "source_doc": "DatabaseModel.md",
+      "quote": "Planner '74-tile tileset' claim is wrong — the code defines 24 unique tile definitions and a 71-entry draw stack",
+      "status": "resolved",
+      "resolution": "Spot-verified against the pinned repo (src/Types/Game.elm:120-147 sums to 71; TileMapper.elm:9-253 holds 24 designs); the modernized data layer reuses the code-verified 24/71/72 numbers (K-2, M-8) and discards '74'",
+      "decision_refs": ["M-8"]
+    },
+    {
+      "id": "A-20",
+      "source_doc": "DatabaseModel.md",
+      "quote": "Live model drifted past the V10 snapshot — NoOpBackendMsg and ClearError gone; no V11 migration exists in the repo",
+      "status": "resolved",
+      "resolution": "M-8 drops the Evergreen layer entirely; the single TypeScript state type is the source of truth and cannot drift from its own definition",
+      "decision_refs": ["M-8"]
+    },
+    {
+      "id": "A-21",
+      "source_doc": "DatabaseModel.md",
+      "quote": "on_delete / referential-action semantics are inapplicable — Elm has no database",
+      "status": "accepted",
+      "reason": "The modernized system has no DBMS either (M-8); value composition without referential enforcement (e.g. Meeple.owner as an unbounded index) is preserved by design (K-1)"
+    },
+    {
+      "id": "A-22",
+      "source_doc": "DatabaseModel.md",
+      "quote": "Column 'defaults' are runtime initializers, not storage defaults",
+      "status": "accepted",
+      "reason": "There is no storage layer in the modernized system (M-8); initializeGame remains the runtime initializer of the Game record"
+    },
+    {
+      "id": "A-23",
+      "source_doc": "DatabaseModel.md",
+      "quote": "Staging: No staging environment, snapshot, or anonymization tooling exists in the repo — UNVERIFIED",
+      "status": "deferred",
+      "reason": "No environments directive; staging is out of scope (see A-11)"
+    },
+    {
+      "id": "A-24",
+      "source_doc": "DomainModel.md",
+      "quote": "Field scoring not implemented (UNVERIFIED). readme.md:79 documents 3 points per touching finished city at game end",
+      "status": "accepted",
+      "reason": "Readme-only rule with no code counterpart; the rewrite preserves the enforced behavior (fields score 0) per K-1; implementing it would change gameplay without a directive"
+    },
+    {
+      "id": "A-25",
+      "source_doc": "DomainModel.md",
+      "quote": "Field meeple claiming not implemented (UNVERIFIED). readme.md:61 says a meeple can be placed on the field",
+      "status": "accepted",
+      "reason": "Readme-only rule; the placement helpers exclude field sides (SideId -1) in the enforced code (FrontendHelpers.elm:33-40); preserved as-is (K-1)"
+    },
+    {
+      "id": "A-26",
+      "source_doc": "DomainModel.md",
+      "quote": "Debug-mode placement block not implemented (UNVERIFIED). readme.md:129 claims placement disabled while debug mode is on",
+      "status": "accepted",
+      "reason": "Readme-only claim; in code the debug overlay is a non-interactive visual layer (pointer-events: none, GameView.elm:582); the rewrite keeps it that way (K-5)"
+    },
+    {
+      "id": "A-27",
+      "source_doc": "DomainModel.md",
+      "quote": "2× city bonus threshold diverges from the readme (UNVERIFIED as written) — code applies 2× only above 2 tiles",
+      "status": "accepted",
+      "reason": "The enforced code rule (score > 2 && City, GameLogic.elm:431-432) is preserved (K-1); the readme's stricter variant is not requested"
+    },
+    {
+      "id": "A-28",
+      "source_doc": "DomainModel.md",
+      "quote": "Game-end condition diverges from the readme (UNVERIFIED as written) — code ends when no tile is placeable",
+      "status": "accepted",
+      "reason": "The enforced placeability-based end condition (getPlayableTileFromDrawstack returns Nothing) is preserved (K-1)"
+    },
+    {
+      "id": "A-29",
+      "source_doc": "DomainModel.md",
+      "quote": "No winner determination (UNVERIFIED). readme.md:117 says 'winner is determined' but finishGame only finalizes scores",
+      "status": "accepted",
+      "reason": "The winner remains implicit from the displayed scores (legacy behavior, K-1); explicit winner determination is a gameplay change the directive does not ask for"
+    },
+    {
+      "id": "A-30",
+      "source_doc": "DomainModel.md",
+      "quote": "No persistence and no explicit game identity ... the concrete storage backend is outside the repo and UNVERIFIED",
+      "status": "resolved",
+      "resolution": "M-8 defines the state layer explicitly: in-memory, no GameId, no reload/resume — the same architectural fact as legacy, now a documented design decision instead of an unknown",
+      "decision_refs": ["M-8"]
+    },
+    {
+      "id": "A-31",
+      "source_doc": "DomainModel.md",
+      "quote": "isRotatedCorrectly is unused at runtime (UNVERIFIED as a runtime control)",
+      "status": "resolved",
+      "resolution": "M-4 wires the ported isRotatedCorrectly as a runtime invariant check on the server rotation path; M-6 keeps the pinned unit tests",
+      "decision_refs": ["M-4", "M-6"]
+    },
+    {
+      "id": "A-32",
+      "source_doc": "DomainModel.md",
+      "quote": "Tileset is 24 designs / 72 tiles, not 74 (UNVERIFIED '74')",
+      "status": "resolved",
+      "resolution": "Code-verified against the pinned repo; the modernized data layer reuses 24 designs + 71-tile draw stack + starting tile (K-2, M-8)",
+      "decision_refs": ["M-8"]
+    },
+    {
+      "id": "A-33",
+      "source_doc": "DomainModel.md",
+      "quote": "The advice rule has no channel (UNVERIFIED). readme.md:81-85 describes players commenting on the drawn tile",
+      "status": "accepted",
+      "reason": "No chat/comment channel exists in the code; adding one is a new feature the directive does not request; the drawn tile stays visible to all via the full-state broadcast (K-4)"
+    },
+    {
+      "id": "A-34",
+      "source_doc": "DomainModel.md",
+      "quote": "No turn timers or timeouts ... whether the Lamdera host layer imposes any timeout is UNVERIFIED (outside the repo)",
+      "status": "deferred",
+      "reason": "Gameplay-affecting and not requested; the modernized server (M-2) makes the behavior explicit: no timer, legacy stall behavior preserved"
+    },
+    {
+      "id": "A-35",
+      "source_doc": "DomainModel.md",
+      "quote": "Unplaceable tiles diverge from the readme (UNVERIFIED as written) — code skips unplaceable tiles and silently drops them",
+      "status": "accepted",
+      "reason": "The enforced discard behavior is preserved (K-1); re-inserting dropped tiles (the readme variant) would change gameplay without a directive"
+    },
+    {
+      "id": "A-36",
+      "source_doc": "UseCaseModel.md",
+      "quote": "Client-only validation (systemic, UNVERIFIED-safe to assert as a code fact) — ALL move/turn validation is client-side only",
+      "status": "resolved",
+      "resolution": "M-4 adds server-side revalidation, so this code fact no longer holds in the modernized system; the UC flows gain a server validation step (defect tracked as I-1)",
+      "decision_refs": ["M-4"]
+    },
+    {
+      "id": "A-37",
+      "source_doc": "UseCaseModel.md",
+      "quote": "No turn timers ... UNVERIFIED whether the Lamdera host layer imposes any timeout (outside the repo)",
+      "status": "deferred",
+      "reason": "Not requested by the directive; the modernized server has no timer either (M-2) and legacy behavior is preserved (see A-2/A-34)"
+    },
+    {
+      "id": "A-38",
+      "source_doc": "UseCaseModel.md",
+      "quote": "Readme discrepancy — meeple count: the readme says '6 meeples + 1 on the score track' while the code initializes 7",
+      "status": "accepted",
+      "reason": "The code value (flat 7 meeples, no score track) is the enforced behavior and is preserved (K-1)"
+    },
+    {
+      "id": "A-39",
+      "source_doc": "UseCaseModel.md",
+      "quote": "Terminate Game is out of scope: the feature exists but is not among the 8 planned use cases",
+      "status": "accepted",
+      "reason": "The feature is kept in the rewrite (K-5/K-6); whether the modernized UseCaseModel adds it as a 9th UC is a writer choice — semantics are unchanged either way"
+    },
+    {
+      "id": "A-40",
+      "source_doc": "UseCaseModel.md",
+      "quote": "No host/admin role: no host/admin role exists in code; a single PLAYER role was modeled",
+      "status": "accepted",
+      "reason": "Domain fact preserved by the rewrite (K-3); no role-system directive"
+    },
+    {
+      "id": "A-41",
+      "source_doc": "UseCaseModel.md",
+      "quote": "Tile-set count: the planner scope note said '74-tile set'; the code builds a 71-tile draw stack plus 1 starting tile",
+      "status": "resolved",
+      "resolution": "Code-verified against the pinned repo; the modernized system reuses the 71+1 numbers (K-2, M-8)",
+      "decision_refs": ["M-8"]
+    },
+    {
+      "id": "A-42",
+      "source_doc": "UseCaseModel.md",
+      "quote": "Debug-mode claim: readme.md:129 claims placement is blocked while debug mode is on; the code does not block",
+      "status": "accepted",
+      "reason": "The enforced behavior (placement active during debug mode) is preserved (K-5); see A-26"
+    },
+    {
+      "id": "A-43",
+      "source_doc": "UseCaseModel.md",
+      "quote": "Rotation invariant unenforced at runtime: isRotatedCorrectly is exercised only by unit tests",
+      "status": "resolved",
+      "resolution": "M-4 makes the ported check a server-side runtime invariant on the rotation path; M-6 keeps the pinned tests",
+      "decision_refs": ["M-4", "M-6"]
+    },
+    {
+      "id": "A-44",
+      "source_doc": "UseCaseModel.md",
+      "quote": "UC-07 is a derived use case: triggered by UC-06 or draw-stack exhaustion, not a direct player action",
+      "status": "accepted",
+      "reason": "Modeling fact of the domain — scoring has no own message (K-6); the modernized UseCaseModel keeps UC-07 derived"
+    }
+  ],
+  "issues": [
+    {
+      "id": "I-1",
+      "source_doc": "Specification.md",
+      "quote": "Client-trusted rules — a tampered client could place invalid tiles or meeples (no server-side turn/validity enforcement)",
+      "status": "resolved",
+      "resolution": "M-4 revalidates move legality and turn ownership server-side (session bound to player, ported pure-domain checks); M-5 returns structured rejections for rejected moves",
+      "decision_refs": ["M-4", "M-5"]
+    },
+    {
+      "id": "I-2",
+      "source_doc": "Specification.md",
+      "quote": "there are no error payloads — a duplicate registration name is rejected silently (unchanged player list re-sent)",
+      "status": "resolved",
+      "resolution": "M-5 adds structured error/rejection payloads (duplicate name, full lobby, invalid move, out-of-turn) with explicit client-side display",
+      "decision_refs": ["M-5"]
+    },
+    {
+      "id": "I-3",
+      "source_doc": "Specification.md",
+      "quote": "Debug.log on client connections arriving during the lobby/registration state — in the production hot path",
+      "status": "resolved",
+      "resolution": "The rewritten Node backend (M-2) has no Debug.log on the connection path; structured logging only",
+      "decision_refs": ["M-2"]
+    },
+    {
+      "id": "I-4",
+      "source_doc": "Specification.md",
+      "quote": "only 2 test files (296 lines) against ~3,524 lines of src; coverage is thin relative to the rule surface",
+      "status": "resolved",
+      "resolution": "M-6 ports the pinned tests to Vitest, targets 80% line coverage on the domain core, and adds integration/E2E tests",
+      "decision_refs": ["M-6"]
+    },
+    {
+      "id": "I-5",
+      "source_doc": "DatabaseModel.md",
+      "quote": "Live model drifted past the V10 snapshot — NoOpBackendMsg and ClearError gone; no V11 migration exists in the repo",
+      "status": "resolved",
+      "resolution": "M-8 drops the Evergreen snapshot/migration layer; a single TypeScript state type cannot drift from its own definition",
+      "decision_refs": ["M-8"]
+    },
+    {
+      "id": "I-6",
+      "source_doc": "DatabaseModel.md",
+      "quote": "State-loss boundaries: ModelReset migrations discard all previously persisted state at the migration boundary",
+      "status": "resolved",
+      "resolution": "M-8 removes the migration boundaries entirely; restart semantics are explicit (new empty lobby) and no new state-loss boundary is introduced",
+      "decision_refs": ["M-8"]
+    }
+  ],
+  "artifact_scopes": {
+    "Specification.md": {
+      "decisions": ["M-1", "M-2", "M-3", "M-4", "M-5", "M-6", "M-7", "M-8"],
+      "assumptions": ["A-1", "A-2", "A-3", "A-4", "A-5", "A-6", "A-7", "A-8", "A-9", "A-10", "A-11", "A-12", "A-13"],
+      "issues": ["I-1", "I-2", "I-3", "I-4", "I-5"],
+      "kept": ["K-1", "K-2", "K-3", "K-4", "K-5", "K-6", "K-7"]
+    },
+    "ClassModel.md": {
+      "decisions": ["M-1", "M-2", "M-3", "M-4", "M-6", "M-8"],
+      "assumptions": ["A-14", "A-15", "A-16"],
+      "issues": ["I-1", "I-4"],
+      "kept": ["K-1", "K-2", "K-6", "K-7"]
+    },
+    "DatabaseModel.md": {
+      "decisions": ["M-4", "M-7", "M-8"],
+      "assumptions": ["A-17", "A-18", "A-19", "A-20", "A-21", "A-22", "A-23"],
+      "issues": ["I-5", "I-6"],
+      "kept": ["K-2", "K-4", "K-7"]
+    },
+    "DomainModel.md": {
+      "decisions": ["M-1", "M-2", "M-4", "M-8"],
+      "assumptions": ["A-24", "A-25", "A-26", "A-27", "A-28", "A-29", "A-30", "A-31", "A-32", "A-33", "A-34", "A-35"],
+      "issues": ["I-1"],
+      "kept": ["K-1", "K-2", "K-3", "K-4", "K-7"]
+    },
+    "UseCaseModel.md": {
+      "decisions": ["M-1", "M-2", "M-3", "M-4", "M-5"],
+      "assumptions": ["A-36", "A-37", "A-38", "A-39", "A-40", "A-41", "A-42", "A-43", "A-44"],
+      "issues": ["I-1", "I-2"],
+      "kept": ["K-1", "K-3", "K-4", "K-5", "K-6"]
+    },
+    "ActivityDiagram.md": {
+      "decisions": ["M-1", "M-2", "M-3", "M-4", "M-5", "M-8"],
+      "assumptions": ["A-13", "A-29"],
+      "issues": ["I-1", "I-2"],
+      "kept": ["K-1", "K-4"]
+    }
+  }
+}

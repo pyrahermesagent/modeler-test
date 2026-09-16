@@ -1,0 +1,23 @@
+{
+  "artifact": "Specification.md",
+  "round": "r4-advisory",
+  "verdicts": [
+    {
+      "id": "S-2a",
+      "verdict": "fixed",
+      "category": "citation_hygiene",
+      "detail": "Specification.md:153 legacy citation corrected from 'src/Types.elm:67-70' to 'src/Types.elm:68-70' for the 8 ToFrontend variants. Line 67 is the 'type ToFrontend' declaration; the 8 variant constructors occupy lines 68-70. Verified against the repo file."
+    },
+    {
+      "id": "S-3",
+      "verdict": "fixed",
+      "category": "alignment",
+      "detail": "Specification.md:128 Modernization Decisions table: the FrontendModel row that previously implied M-8 'replaced' it was reworded so M-8 (BackendModel -> GameSession) is scoped to the BackendModel/Evergreen state machine, and FrontendModel is described as 'modernized to ClientState (M-1), shape kept (K-5)'. No other rows changed."
+    }
+  ],
+  "citations_changed": [
+    "src/Types.elm:67-70 -> src/Types.elm:68-70"
+  ],
+  "unresolvable": [],
+  "notes_for_orchestrator": "S-2a and S-3 fixed. Section order, node maps, and the two honesty sections untouched."
+}

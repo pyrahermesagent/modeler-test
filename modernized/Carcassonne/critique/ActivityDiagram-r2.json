@@ -1,0 +1,8 @@
+{
+  "artifact": "ActivityDiagram.md",
+  "round": 2,
+  "summary": "0 defect(s)",
+  "defects": [],
+  "notes": "r2 re-critique: clean. All 4 r1 fixes verified (N11 M-4 gating; all five swimlane actor/broadcast nodes carry 'incl. actor (M-3)' incl. the previously missing Actor line 54; M-8 in PR-1/2/3 Overview; K-2 row cites only PR-4-N11/N12/N16, correctly NOT N15). 36/36 legacy, 16/16 source-artifact, 15/15 source-code citations verified. Scope floor met. 11/11 node-map entries present.",
+  "status": "passed"
+}

@@ -1,0 +1,15 @@
+{
+  "doc": "DatabaseModel.md",
+  "round": 1,
+  "fixer_agent": "agent-16",
+  "verdicts": [
+    {
+      "id": "SEM-1",
+      "verdict": "fixed",
+      "detail": "Line 41: 'the ten field names and types' -> 'the eleven field names and types'; line 224: 'preserved all ten field names' -> 'preserved all eleven field names'. The legacy Game record (src/Backend/Game.elm:29-39) has 11 fields. No citation edits needed: existing `src/Backend/Game.elm:29-39` citations (lines 40, 51, 52, 63) already span the record."
+    }
+  ],
+  "citations_changed": 0,
+  "unresolvable": [],
+  "notes": "All 12 legacy citations re-verified and left unchanged. No other wording changes; no UNVERIFIED outside the resolved section."
+}

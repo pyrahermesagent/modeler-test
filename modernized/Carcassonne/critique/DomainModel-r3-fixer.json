@@ -1,0 +1,15 @@
+{
+  "artifact": "modernized/Carcassonne/DomainModel.md",
+  "round": 3,
+  "verdicts": [
+    {
+      "id": "SEM-1",
+      "verdict": "fixed",
+      "category": "none",
+      "detail": "Line 355: dropped the self-referential 'replaced by M-4' clause, keeping '(replaces the client-trusted / UI-only enforcement posture)'. M-4 still referenced via the row's Ref column; no citations or other content changed."
+    }
+  ],
+  "citations_changed": 0,
+  "unresolvable": [],
+  "notes_for_orchestrator": "Single minor defect resolved; scope floor (M-1/M-2/M-4/M-8, A-24..A-35, I-1, K-1..K-4, K-7) intact."
+}

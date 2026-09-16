@@ -1,0 +1,53 @@
+{
+  "artifact": "modernized/Carcassonne/ActivityDiagram.md",
+  "round": 1,
+  "citations_total": 379,
+  "citations_sampled": 379,
+  "references_total": 120,
+  "normalized": true,
+  "defects": [
+    {
+      "id": "C-1",
+      "severity": "minor",
+      "category": "internal_consistency",
+      "location": "line 154 (node map) + line 112 (mermaid label) - PR-1-N11",
+      "claim": "PR-1-N11 tagged `kept (K-1)`",
+      "problem": "the row's own description says the node 'now runs after server revalidation', and the M-4 row (line 594) and I-1 resolution (line 609) both list PR-1-N11 among the gated apply nodes; the twin PR-2-N11 is tagged (K-1, gated by M-4) - a node whose behavior changed is not 'kept' per the document's own convention (line 34)",
+      "evidence": "node map line 154 + mermaid line 112 say kept (K-1); lines 594/598/609 list PR-1-N11 among M-4/I-1 gated nodes; twin PR-2-N11 tagged M-4 (line 281) / (K-1, gated by M-4) (line 219)",
+      "fix_instruction": "re-tag PR-1-N11 as (K-1, gated by M-4) in the node map (line 154) AND the mermaid label (line 112), and align the K-1 row at line 598 with that choice (keep PR-1-N11 listed under K-1 semantics but noted as gated)"
+    },
+    {
+      "id": "C-2",
+      "severity": "minor",
+      "category": "self_citation",
+      "location": "line 607 (A-13 resolution)",
+      "claim": "the five broadcast nodes are 'all labelled incl. actor (M-3)'",
+      "problem": "PR-4-N10 (line 449: '...to all clients (M-3)') and PR-5-N8 (line 528: 'UpdateGameState finished game (M-3)') do NOT contain 'incl. actor (M-3)'; only PR-1-N12 (113), PR-2-N20 (228), PR-3-N11 (360) do",
+      "evidence": "substance (actor included) is present in the node maps (lines 482, 568) - label-wording mismatch only",
+      "fix_instruction": "either add 'incl. actor (M-3)' to the mermaid labels at lines 449 and 528, or soften line 607 to 'labelled with the M-3 fan-out semantics (actor included; node maps at the broadcast rows)'"
+    },
+    {
+      "id": "C-3",
+      "severity": "minor",
+      "category": "semantic_summary",
+      "location": "lines 15-17 (Overview table, Modernization cells for PR-1/PR-2/PR-3)",
+      "claim": "PR-1: M-1,M-3,M-4,M-5; PR-2: M-1,M-2,M-3,M-4,M-5; PR-3: M-1,M-2,M-3,M-5 - no M-8",
+      "problem": "all three diagrams carry phase-guard decision nodes labelled (M-8) (PR-1-N9, PR-2-N9, PR-3-N4) in both mermaid labels and node maps, and the PR-5 row (line 19) correctly lists M-8",
+      "evidence": "grep: (M-8) present in PR-1/PR-2/PR-3 diagram blocks; PR-5 row line 19 includes M-8",
+      "fix_instruction": "add M-8 to the Modernization cells of the PR-1, PR-2, PR-3 rows (lines 15-17)"
+    },
+    {
+      "id": "C-4",
+      "severity": "minor",
+      "category": "scope_claim",
+      "location": "line 61 (scope note)",
+      "claim": "excluded low-priority flows (tile rotation, lobby kick/kill, mid-game rejoin) 'are only cross-referenced'",
+      "problem": "only lobby kick/kill is actually cross-referenced (Kill-lobby affordance PR-4-N12, PR-4-N15); tile rotation and mid-game rejoin have no visible cross-reference anywhere in the document",
+      "evidence": "grep (JoinedGame|Rotate|rotation) -> only lines 61, 391, 507; 391/507 mention '4 rotations' only as the draw-stack playability check, not as a cross-reference to the excluded rotation flow",
+      "fix_instruction": "either add brief cross-reference notes for tile rotation and mid-game rejoin (e.g. near line 61 or the relevant phase sections), or narrow the sentence to 'the excluded lobby kick/kill flow is cross-referenced (PR-4-N12/N15)'"
+    }
+  ],
+  "truncated": false,
+  "adjudication": [],
+  "summary": "Critic (agent-13, prose report normalized to JSON by orchestrator). Verdict: needs_fix - 0 major, 4 minor. Structurally complete, citation-accurate (100% of ~379 instances verified vs pinned repo ca279774), plan-conformant; 5 diagrams well-formed with complete node maps (20/29/16/16/16); all scoped refs (M-1..M-5,M-8 / A-13,A-29 / I-1,I-2 / K-1,K-4 / D-1,D-2) resolve; legacy node-ID continuity claim verified against source artifact maxima; UNVERIFIED only inside resolution quote (line 608). Plan references ~120 (M-n ~82, K-n 12, A-n 12, I-n 10, D-n 4); node references 597."
+}

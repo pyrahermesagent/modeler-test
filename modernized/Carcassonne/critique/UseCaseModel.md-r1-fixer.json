@@ -1,0 +1,20 @@
+{
+  "doc": "UseCaseModel.md",
+  "round": 1,
+  "fixer_agent": "agent-18",
+  "verdicts": [
+    {
+      "id": "H-1",
+      "verdict": "fixed",
+      "detail": "Section 6.1 I-1 row marker replaced with the verbatim text from output/Carcassonne/Specification.md:111 ('UNVERIFIED: how the winner is determined / displayed at the end of the game...'). Status, anchor and Resolution columns unchanged."
+    },
+    {
+      "id": "H-2",
+      "verdict": "fixed",
+      "detail": "A-38/A-39/A-40/A-42/A-44 markers replaced with the verbatim source text from output/Carcassonne/UseCaseModel.md:498/500/501/503/505 (only '...' elisions). Statuses (resolved/accepted/deferred), decision anchors (M-2, M-4, M-7, M-4/M-6, M-8) and Resolution cells untouched."
+    }
+  ],
+  "citations_changed": 0,
+  "unresolvable": [],
+  "notes": "No legacy code citations in this document. No other content changes. No UNVERIFIED outside Section 6."
+}

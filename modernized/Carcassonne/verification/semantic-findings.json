@@ -1,0 +1,60 @@
+{
+  "status": "ok",
+  "artifact_set": "modernized/Carcassonne",
+  "run_by": "agent-30 (explore, read-only)",
+  "findings": [
+    {
+      "id": "S-1",
+      "severity": "major",
+      "check": "decision_fidelity",
+      "docs": [
+        "ClassModel.md",
+        "Specification.md",
+        "UseCaseModel.md"
+      ],
+      "locations": [
+        "ClassModel.md:478 (CL-22 note)",
+        "ClassModel.md:517 (CL-35 ProtocolSchemas)",
+        "Specification.md:161-162",
+        "UseCaseModel.md:58,68,603,610"
+      ],
+      "finding": "ClassModel treats M-5 as adding ONE server->client variant ('the 9th server->client variant is the typed rejection payload'); Specification and UseCaseModel (and the plan M-5 'to' clause) name TWO additions (RegistrationRejected + InvalidMove), so the modern surface is 8 legacy + 2 = 10.",
+      "likely_wrong": "ClassModel.md lines 478/517: code supports two silent-failure gaps (Backend.elm:99-102, Backend.elm:185-186)"
+    },
+    {
+      "id": "S-2",
+      "severity": "minor",
+      "check": "citation_hygiene",
+      "docs": [
+        "Specification.md",
+        "DomainModel.md"
+      ],
+      "locations": [
+        "Specification.md:153",
+        "DomainModel.md:314",
+        "UseCaseModel.md:86,213 (correct: 68-70)"
+      ],
+      "finding": "src/Types.elm:67 is the 'type ToFrontend' declaration; the PlayerRegistrationUpdated variant spans 68-70. Two docs cite 67-70, two cite 68-70.",
+      "likely_wrong": "the 67-70 citations (include the declaration line); 68-70 is the variant-level range"
+    },
+    {
+      "id": "S-3",
+      "severity": "minor",
+      "check": "alignment",
+      "docs": [
+        "Specification.md",
+        "ClassModel.md",
+        "DatabaseModel.md"
+      ],
+      "locations": [
+        "Specification.md:128",
+        "Specification.md:113",
+        "ClassModel.md:51,493,991,1076"
+      ],
+      "finding": "Specification line 128 lumps the per-session FrontendModel into 'replaced by the single TypeScript state shape (M-8)', but line 113 of the same doc and the Class/DB models keep it as modernized-to-ClientState (M-1), shape kept (K-5).",
+      "likely_wrong": "Specification.md:128 - M-8 retires the SERVER layer (BackendModel/Evergreen) only; FrontendModel mirror is kept"
+    }
+  ],
+  "summary": "0 blockers, 1 major, 2 minor. All six docs describe ONE coherent TS-first target (React 19 + Vite 7 / Node 24 + ws 8.x + zod, no DBMS, Docker + GitHub Actions). Fix S-1 in ClassModel, S-2 in Specification/DomainModel, S-3 in Specification; everything else verified consistent.",
+  "disposition": "FIXED (r4 advisory fixes) - see per-doc fixer verdicts; verified by re-run of verify.py"
+}

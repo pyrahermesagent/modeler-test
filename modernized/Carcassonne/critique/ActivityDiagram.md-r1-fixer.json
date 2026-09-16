@@ -1,0 +1,30 @@
+{
+  "doc": "ActivityDiagram.md",
+  "round": 1,
+  "fixer_agent": "agent-19",
+  "verdicts": [
+    {
+      "id": "C-1",
+      "verdict": "fixed",
+      "detail": "PR-1-N11 node (mermaid line 112) re-tagged from '(K-1, M-4)' to '(K-1, gated by M-4)'; node-map line 154 re-tagged to match. K-1 row (line 598) now lists PR-1-N11 with the gated note. M-4/I-1 gated lists untouched."
+    },
+    {
+      "id": "C-2",
+      "verdict": "fixed",
+      "detail": "PR-4-N10 (line 449) and PR-5-N8 (line 528) now carry 'incl. actor (M-3)'; PR-2/PR-3 labels were already correct, so the line-607 claim (all five swimlane actor nodes reference M-3) is now true."
+    },
+    {
+      "id": "C-3",
+      "verdict": "fixed",
+      "detail": "M-8 added to the Overview cells of PR-1 (line 15), PR-2 (line 16), PR-3 (line 17). PR-4/PR-5 unchanged; M-8/I-4 rows unchanged."
+    },
+    {
+      "id": "C-4",
+      "verdict": "fixed",
+      "detail": "Line 61 (K-2 row) narrowed to 'lobby kick/kill only' and now cites PR-4-N11, PR-4-N12 and PR-4-N16. Note: the critic's claim named PR-4-N15, but node N15's text (line 460) is 'Broadcast (incl. actor) via WebSocket' - no kick/kill text; the kick/kill text is in N16 (line 462). The underlying defect (N11 missing the citation) stood and was fixed with the correct nodes."
+    }
+  ],
+  "citations_changed": 0,
+  "unresolvable": [],
+  "notes": "PR-1/PR-2 node labels untouched (already correct). All Mermaid blocks re-verified syntactically. No new citations or plan references; no UNVERIFIED outside the resolved section."
+}

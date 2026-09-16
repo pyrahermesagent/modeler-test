@@ -1,0 +1,17 @@
+{
+  "artifact": "DomainModel.md",
+  "round": "r4-advisory",
+  "verdicts": [
+    {
+      "id": "S-2b",
+      "verdict": "fixed",
+      "category": "citation_hygiene",
+      "detail": "DomainModel.md:314 legacy citation corrected from 'src/Types.elm:67-70' to 'src/Types.elm:68-70' for the 8 ToFrontend variants. Same off-by-one as S-2a; line 67 is the type declaration, lines 68-70 hold the 8 constructors. Verified against the repo file."
+    }
+  ],
+  "citations_changed": [
+    "src/Types.elm:67-70 -> src/Types.elm:68-70"
+  ],
+  "unresolvable": [],
+  "notes_for_orchestrator": "S-2b fixed. ERD, node maps, and honesty sections untouched."
+}

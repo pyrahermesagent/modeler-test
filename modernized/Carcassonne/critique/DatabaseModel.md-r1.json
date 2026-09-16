@@ -1,0 +1,22 @@
+{
+  "artifact": "modernized/Carcassonne/DatabaseModel.md",
+  "round": 1,
+  "citations_total": 356,
+  "citations_sampled": 120,
+  "references_total": 23,
+  "defects": [
+    {
+      "id": "SEM-1",
+      "severity": "minor",
+      "category": "semantic",
+      "location": "\u00a73 Global Naming Conventions (line 41) and \u00a75.3 Entity: `Game` description (line 224)",
+      "claim": "\"the `Game` record keeps its ten field names and semantics\" / \"The ten field names and their semantics are preserved verbatim\"",
+      "problem": "The Game record has 11 fields, not 10; the document's own \u00a75.3 table lists 11 rows, contradicting the stated count.",
+      "evidence": "src/Types/Game.elm:28-40 defines 11 fields (playerScores, playerMeeples, players, currentPlayer, tileToPlace, gameState, lastPlacedTile, nextSideId, tileDrawStack, tileGrid, meeples); the \u00a75.3 data-dictionary table (lines 228-238) lists all 11",
+      "fix_instruction": "Replace \"ten\" with \"eleven\" in both locations (line 41: \"keeps its ten field names\" -> \"keeps its eleven field names\"; line 224: \"The ten field names and their semantics\" -> \"The eleven field names and their semantics\"). No other change needed; the 11-row table is already correct."
+    }
+  ],
+  "truncated": false,
+  "adjudication": [],
+  "summary": "Artifact passes the audit on all major axes (template, references, citations, directives, assumption closure, mermaid, modern claims); single minor defect: 'ten' field names for the 11-field Game record, appearing twice."
+}

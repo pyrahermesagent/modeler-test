@@ -1,0 +1,45 @@
+{
+  "doc": "ClassModel.md",
+  "round": 1,
+  "fixer_agent": "agent-15",
+  "verdicts": [
+    {
+      "id": "C-1",
+      "verdict": "fixed",
+      "detail": "Line 430: `src/Types.elm:185-186` replaced by `src/Types.elm:180-183` (K-6). Plan's M-3 text untouched."
+    },
+    {
+      "id": "MINOR-1",
+      "verdict": "fixed",
+      "detail": "Dangling 'plan-gaps note' removed; CL-22 note now states 8 variants modeled per `src/Types.elm:67-86`, the 9th (lobby_killed) covered by M-5's lobby_kick, out of scope for CL-19..26."
+    },
+    {
+      "id": "MINOR-2",
+      "verdict": "fixed",
+      "detail": "CL-33 counted once as replaced (M-6); Part 1.1 tally now 28 modernized / 5 replaced (CL-19, CL-21, CL-31, CL-32, CL-33) and Part 7 says five replaced elements."
+    },
+    {
+      "id": "MINOR-3",
+      "verdict": "fixed",
+      "detail": "Part 2 node map gained a SideId stub row (CL-5) citing `src/Types/Tile.elm:11-12`; legend clarifies stub rows point at the defining legacy module."
+    },
+    {
+      "id": "MINOR-4",
+      "verdict": "fixed",
+      "detail": "CL-17 note now cites the real setters `src/Frontend.elm:57` / `:108` / `:113` for Game/Board and `src/Frontend/PlayerRegistrationView.elm:29-33` for playerName (read-only prop in legacy; M-1 binding is a new concern). No legacy citations changed."
+    },
+    {
+      "id": "MINOR-5",
+      "verdict": "fixed",
+      "detail": "CL-R13 evidence now `src/Backend.elm:4`, `:80`, `:154`, `:164`, `:174` (finishGame, game_over broadcast, finishTile/Field/Road/City). `src/Backend.elm:180` dropped from the evidence list (it is the shuffle call, covered by :174-177). The :180 range in the Part 2.A line-190 citation was left (out of scope)."
+    },
+    {
+      "id": "MINOR-6",
+      "verdict": "fixed",
+      "detail": "Trailing `ClassModel.md:1125-1132` citation removed from the I-4 resolution row; `output/Carcassonne/ClassModel.md:1125-1132` and `.github/workflows/test.yaml:33-45` retained."
+    }
+  ],
+  "citations_changed": 11,
+  "unresolvable": [],
+  "notes": "Bonus correction beyond the defect list: broadcast row in Part 2.D legacy lines corrected 154/164/180 -> 157/167/182 (the actual broadcast calls); the :180 shuffle citation stands where the shuffle is claimed. No UNVERIFIED outside Part 9; plan refs unchanged."
+}

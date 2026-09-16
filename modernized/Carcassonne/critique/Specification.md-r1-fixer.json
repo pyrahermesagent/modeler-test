@@ -1,0 +1,15 @@
+{
+  "doc": "Specification.md",
+  "round": 1,
+  "fixer_agent": "agent-14",
+  "verdicts": [
+    {
+      "id": "C-1",
+      "verdict": "fixed",
+      "detail": "UC-06 row: Code Reference cell now carries `src/Backend.elm:170-178` alongside the existing `src/GameLogic.elm:383-508`, covering the Random.generate shuffle call at src/Backend.elm:177 and shuffleDeck at src/GameLogic.elm:385. Title/behavior text unchanged; no other rows touched; no new UNVERIFIED."
+    }
+  ],
+  "citations_changed": 1,
+  "unresolvable": [],
+  "notes": "All other legacy citations re-checked and left unchanged."
+}
